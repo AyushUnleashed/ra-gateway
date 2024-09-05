@@ -7,10 +7,16 @@ import json
 MODEL_GPT_35_TURBO = "gpt-3.5-turbo"
 MODEL_NAME=  MODEL_GPT_35_TURBO
 
-def prepare_llm_prompt(curr_description: str) -> str:
+def prepare_llm_prompt(product_description: str, product_name: str, cta: str, target_audience: str, duration_limit: int, direction: str) -> str:
     # Prepare the prompt for LLM.
     llm_prompt = f"\n Input Description:"
-    llm_prompt += f"\n {curr_description}"
+    llm_prompt += f"\n {product_description}"
+    llm_prompt += f"\n Product Name: {product_name}"
+    llm_prompt += f"\n Call to Action: {cta}"
+    llm_prompt += f"\n Target Audience: {target_audience}"
+    llm_prompt += f"\n Duration Limit: {duration_limit}"
+    llm_prompt += f"\n Direction: {direction}"
+    llm_prompt += f"\n\n Output Script:"
     return llm_prompt
 
 # Load environment variables from the root .env file

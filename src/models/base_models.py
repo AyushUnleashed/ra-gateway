@@ -1,53 +1,96 @@
 from pydantic import BaseModel, HttpUrl
-from typing import List, Optional, enum
-from pathlib import Path
+from typing import List, Optional, Dict
+from uuid import UUID
+from datetime import datetime
+from enum import Enum
 
-class ProductInfo(BaseModel):
-    product_id: str
-    description: str
-    name: str
-    # logo: Optional[HttpUrl] = None  # New field for product logo
+# enums
+   
+class AssetType(str, Enum):
+    IMAGE = "image"
+    VIDEO = "video"
 
-class DurationOption(enum):
+class ProjectStatus(str, Enum):
+    DRAFT = "draft"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+class DurationOption(int,Enum):
     SHORT = 15
     MEDIUM = 30
 
 
-class AssetType(enum):
-    IMAGE = "image"
-    VIDEO = "video"
-
+# temporary entites.
 class Asset(BaseModel):
-    asset_url: str
-    asset_type: AssetType
-    asset_local_path: Optional[Path]
+    type: AssetType
+    url: Optional[HttpUrl]
+    local_path: Optional[str]
+    description: Optional[str]
 
-class VideoAssets(BaseModel):
-    assets: List[Asset]
 
-class VideoInfo(BaseModel):
-    video_id: str
-    product_id: str
-    duration_limit: DurationOption
-    cta: Optional[str] 
-    target_audience: Optional[str] 
-    script: Optional[str]
-    assets: Optional[VideoAssets]
-    actual_video_length: Optional[int]
+class VideoConfiguration(BaseModel):
+    duration: int
+    target_audience: str
+    cta: str
+    direction: str
 
+class Script(BaseModel):
+    title: str
+    content: str
+
+
+
+ # Reusable entities   
+
+class ProductBase(BaseModel):
+    name: str
+    description: str
+    product_link: Optional[HttpUrl]
+    logo_url: Optional[HttpUrl]
+
+class Product(ProductBase):
+    id: UUID
+    created_at: datetime
+    updated_at: datetime
 
 class Actor(BaseModel):
-    actor_id: str
-    actor_name: str
-    original_video_url: str
+    id: UUID
+    name: str
+    gender:str
+    full_video_link: HttpUrl
+    thumbnail_image_url: HttpUrl
+    default_voice_id: UUID
 
 class Voice(BaseModel):
-    voice_id: str
-    voice_name: str
+    id: UUID
+    name: str
+    gender: str
+    voice_identifier: str
 
 
-# class ReelRequest(BaseModel):
-#     product_info: ProductInfo
-#     assets: ReelAssets
-#     ad_duration: int
-#     additional_params: Optional[dict] = None  # For future expansions
+class VideoLayout(BaseModel):
+    id: UUID
+    name: str
+    description: Optional[str]
+    thumbnail_url: Optional[HttpUrl]
+
+    
+    
+class Project(BaseModel):
+    id: UUID
+    product_id: UUID
+    product_base: ProductBase
+    video_configuration: Optional[VideoConfiguration]
+    script: Optional[Script]
+    actor_id: Optional[UUID]
+    voice_id: Optional[UUID]
+    video_layout_id: Optional[UUID]
+    lipsync_video_url: Optional[HttpUrl]
+    final_video_url: Optional[HttpUrl]
+    status: ProjectStatus
+    assets: List[Asset] = []
+    created_at: datetime
+    updated_at: datetime
+    
+ 
