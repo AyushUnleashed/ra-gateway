@@ -5,9 +5,10 @@ import replicate
 from dotenv import load_dotenv
 import os
 from aws_tools.upload_to_s3 import upload_to_s3
-from constants import BUCKET_NAME
-from models.input_models import ActorType
+from src.utils.constants import Constants
 from utils.logger import get_logger
+
+from src.supabase_tools.handle_voice_tb_updates import get_voice_from_db
 
 logger = get_logger(__name__)
 
@@ -33,14 +34,17 @@ def openai_text_to_speech(script: str,voice:str, output_file_path: str):
         raise
 
 
-def generate_audio_from_script(script, voice, product_id, video_id):
+def generate_t2s_audio(project_id, script, voice_id):
     logger.info(f"Generating audio from script for voice: {voice}")
-    t2s_output_audio_path = f"assets/{product_id}/{video_id}/audio/t2s_{voice}.wav"
+
+    voice = get_voice_from_db(voice_id)
+
+    t2s_output_audio_path = f"{Constants.LOCAL_STORAGE_BASE_PATH}/{project_id}/working/t2s_{voice.voice_identifier}.wav"
     # Generate text to speech audio
-    openai_text_to_speech(script, t2s_output_audio_path)
+    openai_text_to_speech(script, voice.voice_identifier, t2s_output_audio_path)
 
     try:
-        _, s3_t2s_output_audio_file_url = upload_to_s3(file_name=t2s_output_audio_path, bucket=BUCKET_NAME, s3_file_name=t2s_output_audio_path)
+        _, s3_t2s_output_audio_file_url = upload_to_s3(file_name=t2s_output_audio_path, bucket=Constants.S3_BUCKET_NAME, s3_file_name=t2s_output_audio_path)
         logger.info(f"OpenAI T2S file uploaded successfully at path: {s3_t2s_output_audio_file_url}")
     except Exception as e:
         logger.error(f"Failed to upload T2S file to S3: {e}")
@@ -48,8 +52,8 @@ def generate_audio_from_script(script, voice, product_id, video_id):
 
     return s3_t2s_output_audio_file_url
 
-if __name__ == "__main__":
-    from constants import DEMO_SCRIPT
-    from models.input_models import ActorType
-    rvc_audio_link = generate_audio_from_script(DEMO_SCRIPT, ActorType.SAM_ALTMAN.value)
-    print(rvc_audio_link)
+# if __name__ == "__main__":
+#     from constants import DEMO_SCRIPT
+#     from models.input_models import ActorType
+#     rvc_audio_link = generate_audio_from_script(DEMO_SCRIPT, ActorType.SAM_ALTMAN.value)
+#     print(rvc_audio_link)

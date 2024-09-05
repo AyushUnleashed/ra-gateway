@@ -2,9 +2,11 @@ import cv2
 import numpy as np
 import whisper
 from typing import List, Tuple
+import os
+import pickle
 
 class CaptionType:
-    def __init__(self, name: str, font: int = cv2.FONT_HERSHEY_SIMPLEX, font_scale: float = 4.0,
+    def __init__(self, name: str, font: int = cv2.FONT_HERSHEY_SIMPLEX, font_scale: float = 2.0,
                  thickness: int = 8, line_type: int = cv2.LINE_AA):
         self.name = name
         self.font = font
@@ -108,61 +110,14 @@ def get_max_words_per_line(frame_width: int, font, font_scale: float, thickness:
     max_text_width = int(frame_width * 0.9)  # Use 90% of frame width
     return max(1, int(max_text_width / (avg_char_width * 5)))  # Assume average word length of 5 characters
 
-def process_video(input_video: str, output_video: str, caption_type: CaptionType,
-                  font_name: str = cv2.FONT_HERSHEY_SIMPLEX, font_scale: float = 1.0):
-    model = whisper.load_model("base")
-
-    cap = cv2.VideoCapture(input_video)
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter(output_video, fourcc, fps, (width, height))
-
-    # Transcribe video
-    text_array = transcribe_video(input_video, model)
-
-    # Calculate max words per line
-    max_words = get_max_words_per_line(width, font_name, font_scale, caption_type.thickness)
-
-    print("Processing video...")
-    frame_number = 0
-    word_index = 0
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        current_time = frame_number / fps
-        current_words = []
-        current_word_index = -1
-
-        # Find the current word based on timestamp
-        while word_index < len(text_array) and text_array[word_index][1] <= current_time:
-            word_index += 1
-
-        # Collect words for display
-        for i in range(max(0, word_index - max_words // 2), min(len(text_array), word_index + max_words // 2)):
-            word, start_time, end_time = text_array[i]
-            if start_time <= current_time < end_time:
-                current_word_index = len(current_words)
-            current_words.append(word)
-
-        if current_words:
-            text_y = height // 2  # Vertically center the captions
-            frame = caption_type.render(frame, current_words, current_word_index, (0, text_y))
-
-        out.write(frame)
-        frame_number += 1
-
-    cap.release()
-    out.release()
-    cv2.destroyAllWindows()
-    print(f"Video processing complete. Output saved to {output_video}")
-
-
 def transcribe_video(video_path: str, model: whisper.Whisper) -> List[List]:
+    cache_file = f"{video_path}_transcription_cache.pkl"
+    
+    if os.path.exists(cache_file):
+        print("Loading transcription from cache")
+        with open(cache_file, 'rb') as f:
+            return pickle.load(f)
+    
     print('Transcribing video')
     result = model.transcribe(video_path)
 
@@ -177,7 +132,70 @@ def transcribe_video(video_path: str, model: whisper.Whisper) -> List[List]:
             start_time += (end_time - start_time) / len(words)
 
     print('Transcription complete')
+    
+    # Cache the transcription
+    with open(cache_file, 'wb') as f:
+        pickle.dump(text_array, f)
+    
     return text_array
+
+def process_video(input_video: str, output_video: str, caption_type: CaptionType,
+                  font_name: int = cv2.FONT_HERSHEY_SIMPLEX, font_scale: float = 1.0):
+    model = whisper.load_model("base")
+
+    cap = cv2.VideoCapture(input_video)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(output_video, fourcc, fps, (width, height))
+
+    # Transcribe video (now with caching)
+    text_array = transcribe_video(input_video, model)
+
+    # Calculate max words per line
+    max_words = get_max_words_per_line(width, font_name, font_scale, caption_type.thickness)
+
+    print("Processing video...")
+    frame_number = 0
+    word_index = 0
+    
+    # Pre-compute text positions and sizes
+    text_positions = []
+    for i in range(len(text_array)):
+        words = [text_array[j][0] for j in range(max(0, i - max_words // 2), min(len(text_array), i + max_words // 2))]
+        current_word_index = min(max_words // 2, i)
+        text_positions.append((words, current_word_index))
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        current_time = frame_number / fps
+
+        # Find the current word based on timestamp
+        while word_index < len(text_array) and text_array[word_index][1] <= current_time:
+            word_index += 1
+
+        if word_index < len(text_positions):
+            words, current_word_index = text_positions[word_index]
+            if words:
+                text_y = height // 2  # Vertically center the captions
+                frame = caption_type.render(frame, words, current_word_index, (0, text_y))
+
+        out.write(frame)
+        frame_number += 1
+
+        if frame_number % 100 == 0:
+            print(f"Processed {frame_number} frames")
+
+    cap.release()
+    out.release()
+    cv2.destroyAllWindows()
+    print(f"Video processing complete. Output saved to {output_video}")
+
 
 if __name__ == "__main__":
     input_video = "assets/video_retalking_full_output.mp4"
