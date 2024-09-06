@@ -1,21 +1,20 @@
 import os
 from pathlib import Path
 from openai import OpenAI
+from pydantic import HttpUrl
 import replicate
 from dotenv import load_dotenv
 import os
 from aws_tools.upload_to_s3 import upload_to_s3
 from src.utils.constants import Constants
 from utils.logger import get_logger
-
-from src.supabase_tools.handle_voice_tb_updates import get_voice_from_db
-
+from src.models.base_models import OpenAIVoiceIdentifier
 logger = get_logger(__name__)
 
 load_dotenv()
 
-voice = "nova"
-def openai_text_to_speech(script: str,voice:str, output_file_path: str):
+# voice = "nova"
+def openai_text_to_speech(script: str,voice:OpenAIVoiceIdentifier, output_file_path: str):
     logger.info("Starting OpenAI text-to-speech conversion.")
     client = OpenAI()
 
@@ -33,15 +32,26 @@ def openai_text_to_speech(script: str,voice:str, output_file_path: str):
         logger.error(f"Failed to generate text-to-speech audio: {e}")
         raise
 
+def get_audio_duration(audio_file_path: str) -> float:
+    import wave
 
-def generate_t2s_audio(project_id, script, voice_id):
-    logger.info(f"Generating audio from script for voice: {voice}")
+    with wave.open(audio_file_path, 'rb') as audio_file:
+        frames = audio_file.getnframes()
+        rate = audio_file.getframerate()
+        duration = frames / float(rate)
+        logger.info(f"Audio duration: {duration} seconds")
+    return duration
 
-    voice = get_voice_from_db(voice_id)
+def generate_t2s_audio(project_id: str, script: str, voice_identifier: OpenAIVoiceIdentifier) -> HttpUrl:
+    logger.info(f"Generating audio from script for voice: {voice_identifier}")
 
-    t2s_output_audio_path = f"{Constants.LOCAL_STORAGE_BASE_PATH}/{project_id}/working/t2s_{voice.voice_identifier}.wav"
+
+    t2s_output_audio_path = f"{Constants.LOCAL_STORAGE_BASE_PATH}/{project_id}/working/t2s_{voice_identifier}.wav"
     # Generate text to speech audio
-    openai_text_to_speech(script, voice.voice_identifier, t2s_output_audio_path)
+    openai_text_to_speech(script, voice_identifier, t2s_output_audio_path)
+    
+    # Read the audio file and get its duration
+    duration = get_audio_duration(t2s_output_audio_path)
 
     try:
         _, s3_t2s_output_audio_file_url = upload_to_s3(file_name=t2s_output_audio_path, bucket=Constants.S3_BUCKET_NAME, s3_file_name=t2s_output_audio_path)
@@ -50,7 +60,7 @@ def generate_t2s_audio(project_id, script, voice_id):
         logger.error(f"Failed to upload T2S file to S3: {e}")
         raise
 
-    return s3_t2s_output_audio_file_url
+    return s3_t2s_output_audio_file_url, duration
 
 # if __name__ == "__main__":
 #     from constants import DEMO_SCRIPT

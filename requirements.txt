@@ -11,7 +11,8 @@ openai
 streamlit
 aiohttp
 moviepy
-
+aiofiles
 openai-whisper
 opencv-python
 numpy==1.24.3
+supabase
