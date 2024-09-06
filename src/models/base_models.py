@@ -20,6 +20,21 @@ class DurationOption(int,Enum):
     SHORT = 15
     MEDIUM = 30
 
+class OpenAIVoiceIdentifier(str, Enum):
+    ALLOY = "alloy"
+    ECHO = "echo"
+    FABLE = "fable"
+    ONYX = "onyx"
+    NOVA = "nova"
+    SHIMMER = "shimmer"
+
+class VideoLayoutType(str, Enum):
+    TOP_BOTTOM = "TOP_BOTTOM"
+    AVATAR_BUBBLE = "AVATAR_BUBBLE"
+
+class AspectRatio(str, Enum):
+    SQUARE = "1:1"
+    NINE_SIXTEEN = "9:16"
 
 # temporary entites.
 class Asset(BaseModel):
@@ -43,6 +58,7 @@ class Script(BaseModel):
 
  # Reusable entities   
 
+# Product
 class ProductBase(BaseModel):
     name: str
     description: str
@@ -54,27 +70,35 @@ class Product(ProductBase):
     created_at: datetime
     updated_at: datetime
 
-class Actor(BaseModel):
-    id: UUID
+# Actor
+class ActorBase(BaseModel):
     name: str
     gender:str
     full_video_link: HttpUrl
     thumbnail_image_url: HttpUrl
     default_voice_id: UUID
 
-class Voice(BaseModel):
+class Actor(ActorBase):
     id: UUID
+
+
+# Voice
+class VoiceBase(BaseModel):
     name: str
     gender: str
-    voice_identifier: str
+    voice_identifier: OpenAIVoiceIdentifier
 
-
-class VideoLayout(BaseModel):
+class Voice(VoiceBase):
     id: UUID
+
+# VideoLayout
+class VideoLayoutBase(BaseModel):
     name: str
     description: Optional[str]
     thumbnail_url: Optional[HttpUrl]
 
+class VideoLayout(VideoLayoutBase):
+    id: UUID
     
     
 class Project(BaseModel):
@@ -84,9 +108,13 @@ class Project(BaseModel):
     video_configuration: Optional[VideoConfiguration]
     script: Optional[Script]
     actor_id: Optional[UUID]
+    actor_base: Optional[ActorBase]
     voice_id: Optional[UUID]
+    voice_base: Optional[VoiceBase]
     video_layout_id: Optional[UUID]
+    video_layout_base: Optional[VideoLayoutBase]
     lipsync_video_url: Optional[HttpUrl]
+    final_video_duration: Optional[float]
     final_video_url: Optional[HttpUrl]
     status: ProjectStatus
     assets: List[Asset] = []

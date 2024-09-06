@@ -4,11 +4,16 @@ from pydantic import HttpUrl
 from typing import Optional
 from datetime import datetime
 from fastapi import APIRouter
+
+from src.services.video_editing.edit_video import edit_final_video
+from src.supabase_tools.handle_project_tb_updates import update_project_in_db
+from src.utils.util_functions import determine_asset_type, save_file_locally
 main_router = APIRouter()
 
+from src.services.lipsync_generation.generate_wav2lip import generate_lipsync_video
 from src.utils.constants import Constants
 
-from src.models.base_models import Project, Product, VideoConfiguration, ProductBase, AssetType ,Asset
+from src.models.base_models import Project, Product, VideoConfiguration, ProductBase, AssetType ,Asset, Actor, ActorBase,Voice, VoiceBase, VideoLayoutBase,VideoLayout
 from src.models.shared_state import projects_in_memory
 
 
@@ -17,8 +22,8 @@ from src.services.voice_over_generation.generate_t2s import generate_t2s_audio
 
 # DB functions
 from src.supabase_tools.handle_product_tb_updates import add_product_to_db, get_product_from_db
-from src.supabase_tools.handle_actor_tb_updates import get_actors_from_db
-from src.supabase_tools.handle_voice_tb_updates import get_voices_from_db
+from src.supabase_tools.handle_actor_tb_updates import get_actors_from_db, get_actor_from_db
+from src.supabase_tools.handle_voice_tb_updates import get_voices_from_db, get_voice_from_db
 from src.supabase_tools.handle_layout_tb_updates import get_layouts_from_db
 
 # add a product
@@ -124,7 +129,28 @@ async def select_actor_voice(project_id: UUID, actor_id: UUID, voice_id: UUID):
 
     project = projects_in_memory[project_id]
     project.actor_id = actor_id
+    actor = get_actor_from_db(actor_id)
+
+    actor_base = ActorBase(
+        name=actor.name,
+        gender=actor.gender,
+        full_video_link=actor.full_video_link,
+        thumbnail_image_url=actor.thumbnail_image_url,
+        default_voice_id=actor.default_voice_id
+    )
+
+    project.actor_base = actor_base
+
     project.voice_id = voice_id
+    voice = get_voice_from_db(voice_id)
+
+    voice_base = VoiceBase(
+        name=voice.name,
+        gender=voice.gender,
+        voice_identifier=voice.voice_identifier
+    )
+
+    project.voice_base = voice_base
     project.updated_at = datetime.now()
 
     return {"selection_successful": True, "message": "Actor and voice selected successfully"}
@@ -147,19 +173,6 @@ async def upload_asset(project_id: UUID,file: UploadFile = File(...)):
 
     return {"asset_uploaded": True, "message": "Asset uploaded successfully", "asset_id": str(len(project.assets) - 1)}
 
-def save_file_locally(path, file):
-    with open(path, "wb") as buffer:
-        buffer.write(file.file.read())
-    return path
-
-def determine_asset_type(filename):
-    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff')):
-        return  AssetType.IMAGE
-    elif filename.lower().endswith(('.mp4', '.avi', '.mov', '.wmv', '.flv', '.mkv')):
-        return AssetType.VIDEO
-    else:
-        raise ValueError("Unsupported file type")
-    
 
 # Get Video Layouts
 #     
@@ -178,7 +191,22 @@ async def select_layout(project_id: UUID, layout_id: UUID):
         raise HTTPException(status_code=404, detail="Project not found")
 
     project = projects_in_memory[project_id]
+
+    # Call db to get VideoLayout
+    video_layout = get_layouts_from_db(layout_id)
+    if not video_layout:
+        raise HTTPException(status_code=404, detail="Layout not found")
+
+    # Create VideoLayoutBase
+    video_layout_base = VideoLayoutBase(
+        name=video_layout.name,
+        description=video_layout.description,
+        thumbnail_url=video_layout.thumbnail_url
+    )
+
+    # Attach VideoLayoutBase to the project
     project.video_layout_id = layout_id
+    project.video_layout_base = video_layout_base
     project.updated_at = datetime.now()
 
     return {"layout_selected": True, "message": "Layout selected successfully"}
@@ -205,15 +233,22 @@ async def process_video(project_id: UUID):
     project = projects_in_memory[project_id]
 
     # Generate T2S audio
-    t2s_audio_url = generate_t2s_audio(project.id,project.script.content, project.voice_id)
+    t2s_audio_url, audio_duration = generate_t2s_audio(project.id,project.script.content, project.voice_base.voice_identifier)
     project.t2s_audio_url = t2s_audio_url
+    project.final_video_duration = audio_duration
 
     # Generate lipsync video
-    lipsync_video_url = generate_lipsync_video(project.actor_id, t2s_audio_url)
+    lipsync_video_url = generate_lipsync_video(project.actor_base.full_video_link, project.t2s_audio_url)
     project.lipsync_video_url = lipsync_video_url
 
     # Edit final video
-    final_video_url = edit_final_video(lipsync_video_url, project.video_layout_id, project.assets)
+    final_video_url = edit_final_video(
+        project.lipsync_video_url,
+        project.video_layout_id,
+        project.assets,
+        project.final_video_duration
+    )
+
     project.final_video_url = final_video_url
 
     project.status = "completed"
@@ -221,19 +256,6 @@ async def process_video(project_id: UUID):
 
     # Update project in database
     update_project_in_db(project)
-
-
-def generate_lipsync_video(actor_id, audio_url):
-    # Dummy function to generate lipsync video
-    pass
-
-def edit_final_video(lipsync_video_url, layout_id, assets):
-    # Dummy function to edit final video
-    pass
-
-def update_project_in_db(project):
-    # Dummy function to update project in database
-    pass
 
 
 
