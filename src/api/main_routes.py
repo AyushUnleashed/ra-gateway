@@ -10,10 +10,12 @@ from src.supabase_tools.handle_project_tb_updates import update_project_in_db
 from src.utils.util_functions import determine_asset_type, save_file_locally
 main_router = APIRouter()
 
-from src.services.lipsync_generation.generate_wav2lip import generate_lipsync_video
+from src.services.lipsync_generation.generate_lipysnc import generate_lipsync_video
 from src.utils.constants import Constants
+from src.utils.util_functions import save_file_locally,download_video
+from src.utils.file_handling import get_local_path
 
-from src.models.base_models import Project, Product, VideoConfiguration, ProductBase, AssetType ,Asset, Actor, ActorBase,Voice, VoiceBase, VideoLayoutBase,VideoLayout
+from src.models.base_models import Project, Product, VideoConfiguration, ProductBase, AssetType ,Asset, Actor, ActorBase,Voice, VoiceBase, VideoLayoutBase,VideoLayout, ProjectStatus
 from src.models.shared_state import projects_in_memory
 
 
@@ -25,6 +27,7 @@ from src.supabase_tools.handle_product_tb_updates import add_product_to_db, get_
 from src.supabase_tools.handle_actor_tb_updates import get_actors_from_db, get_actor_from_db
 from src.supabase_tools.handle_voice_tb_updates import get_voices_from_db, get_voice_from_db
 from src.supabase_tools.handle_layout_tb_updates import get_layouts_from_db
+
 
 # add a product
 @main_router.post("/api/products/create-product")
@@ -73,6 +76,9 @@ async def create_project(product_id: UUID):
         id=project_id,
         product_id=product_id,
         product_base=product_base,
+        status=ProjectStatus.CREATED,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
     )
 
     projects_in_memory[project_id] = project
@@ -89,6 +95,7 @@ async def configure_video(project_id: UUID, config: VideoConfiguration):
 
     project = projects_in_memory[project_id]
     project.video_configuration = config
+    project.status = ProjectStatus.DRAFT
     project.updated_at = datetime.now()
 
     return {"config_added": True, "message": "Video configuration added successfully"}
@@ -223,7 +230,7 @@ async def generate_final_video(project_id: UUID, background_tasks: BackgroundTas
         raise HTTPException(status_code=404, detail="Project not found")
 
     project = projects_in_memory[project_id]
-    project.status = "processing"
+    project.status = ProjectStatus.PROCESSING
 
     background_tasks.add_task(process_video, project_id)
 
@@ -236,22 +243,31 @@ async def process_video(project_id: UUID):
     t2s_audio_url, audio_duration = generate_t2s_audio(project.id,project.script.content, project.voice_base.voice_identifier)
     project.t2s_audio_url = t2s_audio_url
     project.final_video_duration = audio_duration
+    project.status = ProjectStatus.AUDIO_READY
 
     # Generate lipsync video
     lipsync_video_url = generate_lipsync_video(project.actor_base.full_video_link, project.t2s_audio_url)
     project.lipsync_video_url = lipsync_video_url
+    project.status = ProjectStatus.LIPSYNC_READY
+
+    # save lipsync video locally
+    lipsync_video_local_path = get_local_path(project.id,"working",f"lipsync_video_{project.actor_base.name}.mp4")
+    lipsync_video_local_path = download_video(lipsync_video_url,output_path=lipsync_video_local_path)
 
     # Edit final video
-    final_video_url = edit_final_video(
-        project.lipsync_video_url,
+    final_video_path = edit_final_video(
+        lipsync_video_local_path,
         project.video_layout_id,
         project.assets,
         project.final_video_duration
     )
 
+    # Upload final video to Supabase
+    final_video_url = upload_to_supabase(final_video_path, "projects", project.id, "final_video.mp4")
+
     project.final_video_url = final_video_url
 
-    project.status = "completed"
+    project.status = ProjectStatus.COMPLETED
     project.updated_at = datetime.now()
 
     # Update project in database
@@ -275,5 +291,7 @@ async def get_project_status(project_id: UUID):
 
     if project.status == "completed":
         response["final_video_url"] = str(project.final_video_url)
+    else:
+        response["final_video_url"] = None
 
     return response
