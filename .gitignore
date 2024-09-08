@@ -3,3 +3,4 @@ _pycache_
 src/temp_storage/
 src/assets/
 .env
+__pycache__

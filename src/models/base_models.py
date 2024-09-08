@@ -11,8 +11,11 @@ class AssetType(str, Enum):
     VIDEO = "video"
 
 class ProjectStatus(str, Enum):
+    CREATED = "created"
     DRAFT = "draft"
     PROCESSING = "processing"
+    AUDIO_READY = "audio_ready"
+    LIPSYNC_READY = "lipsync_ready"
     COMPLETED = "completed"
     FAILED = "failed"
 
@@ -105,6 +108,11 @@ class Project(BaseModel):
     id: UUID
     product_id: UUID
     product_base: ProductBase
+    status: ProjectStatus
+    assets: List[Asset] = []
+    created_at: datetime
+    updated_at: datetime
+
     video_configuration: Optional[VideoConfiguration]
     script: Optional[Script]
     actor_id: Optional[UUID]
@@ -116,9 +124,6 @@ class Project(BaseModel):
     lipsync_video_url: Optional[HttpUrl]
     final_video_duration: Optional[float]
     final_video_url: Optional[HttpUrl]
-    status: ProjectStatus
-    assets: List[Asset] = []
-    created_at: datetime
-    updated_at: datetime
+
     
  
