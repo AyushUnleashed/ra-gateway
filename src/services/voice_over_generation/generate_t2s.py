@@ -2,10 +2,12 @@ import os
 from pathlib import Path
 from openai import OpenAI
 from pydantic import HttpUrl
+from typing import Tuple
 import replicate
 from dotenv import load_dotenv
 import os
 from src.aws_tools.upload_to_s3 import upload_to_s3
+from src.supabase_tools.handle_bucket_updates import upload_file_to_projects
 from src.utils.constants import Constants
 from src.models.base_models import OpenAIVoiceIdentifier
 import logging as logger
@@ -47,31 +49,40 @@ def get_audio_duration(audio_file_path: str) -> float:
         logger.error(f"Failed to get audio duration: {e}")
         raise
 
-def generate_t2s_audio(project_id: str, script: str, voice_identifier: OpenAIVoiceIdentifier) -> HttpUrl:
+def generate_t2s_audio(project_id: str, script: str, voice_identifier: OpenAIVoiceIdentifier) -> Tuple[HttpUrl, float]:
     logger.info(f"Generating audio from script for voice: {voice_identifier}")
 
-    t2s_output_audio_path = f"{Constants.LOCAL_STORAGE_BASE_PATH}/{project_id}/working/t2s_{voice_identifier}.wav"
+    cache = True
+    if cache == True:
+        return "https://kooaoegvtnxgrxbyuwvu.supabase.co/storage/v1/object/public/prod-bucket/projects/test_project_id/t2s_nova.wav", 0.0
+
+    t2s_output_audio_path = f"{Constants.LOCAL_STORAGE_BASE_PATH}/{project_id}/working/t2s_{voice_identifier.value}.wav"
     # Generate text to speech audio
     openai_text_to_speech(script, voice_identifier, t2s_output_audio_path)
     
     # Read the audio file and get its duration
-    # duration = get_audio_duration(t2s_output_audio_path)
-    duration = 0
+    #duration = get_audio_duration(t2s_output_audio_path)
+    duration = 0.0
 
-    # try:
-    #     _, s3_t2s_output_audio_file_url = upload_to_s3(file_name=t2s_output_audio_path, bucket=Constants.S3_BUCKET_NAME, s3_file_name=t2s_output_audio_path)
-    #     logger.info(f"OpenAI T2S file uploaded successfully at path: {s3_t2s_output_audio_file_url}")
-    # except Exception as e:
-    #     logger.error(f"Failed to upload T2S file to S3: {e}")
-    #     raise
+    try:
+        t2s_output_audio_file_url = upload_file_to_projects(
+            local_path=t2s_output_audio_path,
+            project_id=project_id,
+            content_type="audio/wav"
+        )
+        logger.info(f"OpenAI T2S file uploaded successfully at path: {t2s_output_audio_file_url}")
+    except Exception as e:
+        logger.error(f"Failed to upload T2S file to Supabase: {e}")
+        raise
 
-    # return s3_t2s_output_audio_file_url, duration
+    return t2s_output_audio_file_url, duration
 
 if __name__ == "__main__":
     # from src.utils.constants import DEMO_SCRIPT
     DEMO_SCRIPT = "Tired of AI-generated content that sounds robotic? Meet Longshot AI, your AI co-pilot for creating content that ranks and resonates. With features like one-click SEO blogs, fact-checking, and real-time content optimization, Longshot AI revolutionizes your content strategy. Say goodbye to confusion and hello to unbeatable results. Plan, generate, and optimize with ease. Visit longshot.ai and transform your content game today."
-    generate_t2s_audio(
+    url,duration = generate_t2s_audio(
         project_id="test_project_id",
         script=DEMO_SCRIPT,
         voice_identifier=OpenAIVoiceIdentifier.NOVA
     )
+    print("URL: ", url)
