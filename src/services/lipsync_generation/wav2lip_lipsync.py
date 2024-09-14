@@ -1,8 +1,7 @@
 import replicate
 from dotenv import load_dotenv
 import os
-from utils.logger import get_logger
-logger = get_logger(__name__)
+import logging as logger
 
 load_dotenv()
 def generate_actor_video(original_actor_video_link, audio_file_link):
