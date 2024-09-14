@@ -22,11 +22,14 @@ async def edit_final_video(lipsync_video_local_path: str, layout_type: VideoLayo
         aspect_ratio=AspectRatio.NINE_SIXTEEN
     )
 
-    final_video_path = f"{Constants.LOCAL_STORAGE_BASE_PATH}/working/final_video.mp4"
-    combine_videos_vertically(
-        video1=lipsync_video_local_path,
-        video2=asset_video_path,
-        output_path=final_video_path,
-    )
+    if layout_type == VideoLayoutType.TOP_BOTTOM:
+        final_video_path = f"{Constants.LOCAL_STORAGE_BASE_PATH}/working/final_video.mp4"
+        combine_videos_vertically(
+            video1=lipsync_video_local_path,
+            video2=asset_video_path,
+            output_path=final_video_path,
+        )
 
-    return final_video_path
+        return final_video_path
+    else:
+        raise Exception("Unsupported layout type")
