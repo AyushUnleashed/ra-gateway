@@ -8,18 +8,22 @@ import os
 import numpy as np
 from PIL import Image, ImageDraw
 
-def create_rounded_corner_mask(size, radius):
-    mask = Image.new('L', size, 0)
-    draw = ImageDraw.Draw(mask)
-    draw.rounded_rectangle([(0, 0), size], radius, fill=255)
-    return mask
+# def create_rounded_corner_mask(size, radius):
+#     mask = Image.new('L', size, 255)  # Start with a white (fully opaque) background
+#     draw = ImageDraw.Draw(mask)
+#     draw.rounded_rectangle([(0, 0), size], radius, fill=0)  # Draw black (transparent) rounded corners
+#     return ImageClip(np.array(mask), ismask=True)  # Convert to MoviePy ImageClip directly
 
-def apply_rounded_corners(clip, radius):
-    mask = create_rounded_corner_mask((clip.w, clip.h), radius)
-    return clip.set_mask(ImageClip(np.array(mask), ismask=True))
+# def apply_rounded_corners(clip, radius):
+#     mask = create_rounded_corner_mask((clip.w, clip.h), radius)
+#     return clip.set_mask(mask)
+
+def save_intermediate_clip(clip, filename, fps=25):
+    output_path = os.path.join(Constants.LOCAL_STORAGE_BASE_PATH, "debug", filename)
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    clip.write_videofile(output_path, codec="libx264", fps=fps)
 
 async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_ratio: AspectRatio) -> str:
-    # Determine the dimensions based on the aspect ratio
     if aspect_ratio == AspectRatio.SQUARE:
         width, height = 1080, 1080
     elif aspect_ratio == AspectRatio.NINE_SIXTEEN:
@@ -27,10 +31,7 @@ async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_
     else:
         raise ValueError("Unsupported aspect ratio")
 
-    # Calculate the duration each asset should appear
     asset_duration = final_video_length / len(assets)
-
-    # Create the background clip (off-white color)
     background_color = (245, 243, 242)
     background = ColorClip(size=(width, height), color=background_color, duration=asset_duration)
 
@@ -39,17 +40,19 @@ async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_
         try:
             if asset.type == AssetType.VIDEO:
                 clip = VideoFileClip(asset.local_path).without_audio()
+                save_intermediate_clip(clip, f"original_video_{index}.mp4")
                 if clip.duration < asset_duration:
                     clip = clip.loop(duration=asset_duration)
                 else:
                     clip = clip.subclip(0, asset_duration)
+                save_intermediate_clip(clip, f"duration_adjusted_video_{index}.mp4")
             elif asset.type == AssetType.IMAGE:
                 clip = ImageClip(asset.local_path).set_duration(asset_duration)
+                save_intermediate_clip(clip, f"original_image_{index}.mp4")
             else:
                 print(f"Warning: Unsupported asset type: {asset.type}. Skipping this asset.")
                 continue
 
-            # Resize the clip to fit within the frame while maintaining aspect ratio
             clip_aspect_ratio = clip.w / clip.h
             if clip_aspect_ratio > width / height:
                 new_width = width
@@ -59,16 +62,14 @@ async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_
                 new_width = int(height * clip_aspect_ratio)
 
             clip = clip.resize(newsize=(new_width, new_height))
+            save_intermediate_clip(clip, f"resized_clip_{index}.mp4")
             
-            # Apply rounded corners to the resized clip
-            clip = apply_rounded_corners(clip, radius=20)
-
-            # Center the clip
             clip = clip.set_position(("center", "center"))
+            save_intermediate_clip(clip, f"positioned_clip_{index}.mp4")
 
-            # Create a composite clip with the background and the rounded asset clip
             composite_clip = CompositeVideoClip([background.copy(), clip], size=(width, height))
             composite_clip = composite_clip.set_duration(asset_duration)
+            save_intermediate_clip(composite_clip, f"composite_clip_{index}.mp4")
             
             clips.append(composite_clip)
         except Exception as e:
@@ -80,19 +81,11 @@ async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_
     if not clips:
         raise ValueError("No valid clips to concatenate")
 
-    # Concatenate all the clips
     final_clip = concatenate_videoclips(clips, method="compose")
-
-    # Define the output path
     asset_edited_video_path = str(os.path.join(Constants.LOCAL_STORAGE_BASE_PATH, "working", f"asset_edited_video_{aspect_ratio}.mp4"))
-
-    # Ensure the folder exists
     os.makedirs(os.path.dirname(asset_edited_video_path), exist_ok=True)
-
-    # Write the final video to a file
     final_clip.write_videofile(asset_edited_video_path, codec="libx264", fps=25)
 
-    # Close all clips
     final_clip.close()
     for clip in clips:
         clip.close()
