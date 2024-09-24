@@ -1,5 +1,5 @@
 import moviepy.editor as mp
-def combine_videos_vertically(top_video_path, bottom_video_path, output_path, shift_top_video=(0, 0), shift_bottom_video=(0, 0)):
+def combine_videos_vertically(top_video_path, bottom_video_path, output_path, shift_top_video=(0, 0), shift_bottom_video=(0, -100)):
     # Load the videos
     top_video = mp.VideoFileClip(top_video_path)
     bottom_video = mp.VideoFileClip(bottom_video_path)
@@ -54,6 +54,6 @@ if __name__ == "__main__":
     # Example usage
     combine_videos_vertically(
         "src/temp_storage/working/asset_edited_video_AspectRatio.SQUARE.mp4",
-        "src/temp_storage/working/sara_longshotat_ai_nova.mp4", 
-        "src/temp_storage/working/combined_output.mp4",
-        shift_video1=(0, 0), shift_video2=(0, -100))
+        "src/temp_storage/a34b03d2-7190-45cc-b2e7-01e347b18675/working/lipsync_video_Sara.mp4", 
+        "src/temp_storage/a34b03d2-7190-45cc-b2e7-01e347b18675/working/final_video.mp4",
+        shift_top_video=(0, 0), shift_bottom_video=(0, -100))

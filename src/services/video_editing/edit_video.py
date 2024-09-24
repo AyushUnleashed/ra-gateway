@@ -13,7 +13,7 @@ from src.utils.file_handling import get_local_path
 # def process_assets(assets: List[Asset]) -> List[str]:
 #     return [asset.local_path for asset in assets if asset.local_path]
 
-async def edit_final_video(lipsync_video_local_path: str, layout_type: VideoLayoutType, assets: List[Asset], final_video_duration:int) -> None:
+async def edit_final_video(lipsync_video_local_path: str,final_video_path:str, layout_type: VideoLayoutType, assets: List[Asset], final_video_duration:int) -> None:
     
     # Call function to edit the video (assuming a function named `edit_video` exists)
     asset_video_path = await edit_asset_video(
@@ -23,7 +23,6 @@ async def edit_final_video(lipsync_video_local_path: str, layout_type: VideoLayo
     )
 
     if layout_type == VideoLayoutType.TOP_BOTTOM.value:
-        final_video_path = str(os.path.join(Constants.LOCAL_STORAGE_BASE_PATH, "working", "final_video.mp4"))
         combine_videos_vertically(
             top_video_path=asset_video_path,
             bottom_video_path=lipsync_video_local_path,

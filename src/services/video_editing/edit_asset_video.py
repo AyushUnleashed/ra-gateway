@@ -62,14 +62,14 @@ async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_
                 new_width = int(height * clip_aspect_ratio)
 
             clip = clip.resize(newsize=(new_width, new_height))
-            save_intermediate_clip(clip, f"resized_clip_{index}.mp4")
+            #save_intermediate_clip(clip, f"resized_clip_{index}.mp4")
             
             clip = clip.set_position(("center", "center"))
-            save_intermediate_clip(clip, f"positioned_clip_{index}.mp4")
+            #save_intermediate_clip(clip, f"positioned_clip_{index}.mp4")
 
             composite_clip = CompositeVideoClip([background.copy(), clip], size=(width, height))
             composite_clip = composite_clip.set_duration(asset_duration)
-            save_intermediate_clip(composite_clip, f"composite_clip_{index}.mp4")
+            #save_intermediate_clip(composite_clip, f"composite_clip_{index}.mp4")
             
             clips.append(composite_clip)
         except Exception as e:
@@ -98,7 +98,7 @@ if __name__ == "__main__":
     from src.models.base_models import Asset, AspectRatio, AssetType
 
     # Create example assets
-    assets_folder = "src/temp_storage/0da6b88d-a06e-4741-adcb-75ef1a67ef6c/assets"
+    assets_folder = "src/temp_storage/a34b03d2-7190-45cc-b2e7-01e347b18675/assets"
     assets = []
 
     for filename in os.listdir(assets_folder):
@@ -120,7 +120,7 @@ if __name__ == "__main__":
             assets.append(asset)
 
     # Define final video length and aspect ratio
-    final_video_length = 26  # seconds
+    final_video_length = 19  # seconds
     aspect_ratio = AspectRatio.SQUARE
 
     # Run the edit_asset_video function
