@@ -7,6 +7,8 @@ import pickle
 from moviepy.editor import VideoFileClip, AudioFileClip, CompositeVideoClip
 from PIL import Image, ImageDraw, ImageFont
 
+roboto_font_path = "src/fonts/Roboto-Black.ttf"
+
 class CaptionType:
     def __init__(self, name: str, font_path: str, font_size: int = 32,
                  thickness: int = 2, line_type: int = cv2.LINE_AA, outline_thickness: int = 2):
@@ -83,24 +85,28 @@ class HighlightedWordsCaption(CaptionType):
         return cv2.cvtColor(np.array(frame_with_text), cv2.COLOR_RGB2BGR)
 
 class BoxedHighlightCaption(CaptionType):
-    def __init__(self, font_path: str, font_size: int = 64,
+    def __init__(self, font_path: str = "src/fonts/Roboto-Black.ttf", font_size: int = 64,
                  default_color: Tuple[int, int, int] = (255, 255, 0),
                  highlight_color: Tuple[int, int, int] = (255, 0, 0),
                  outline_color: Tuple[int, int, int] = (0, 0, 0),
                  outline_thickness: int = 3,
                  background_color: Tuple[int, int, int, int] = (0, 0, 0, 128),
-                 background_padding: int = 20):
+                 background_padding: int = 20,
+                 max_lines: int = 1):  # New parameter to control the number of lines
         super().__init__("BoxedHighlight", font_path, font_size, outline_thickness=outline_thickness)
         self.default_color = default_color
         self.highlight_color = highlight_color
         self.outline_color = outline_color
         self.background_color = background_color
         self.background_padding = background_padding
+        self.max_lines = max_lines  # Store the max_lines parameter
 
     def render(self, frame: np.ndarray, words: List[str], current_word_index: int, position: Tuple[int, int]) -> np.ndarray:
         frame_height, frame_width = frame.shape[:2]
         x, y = position
         max_width = int(frame_width * 0.9)  # Use 90% of frame width
+
+        # Split words into lines
         lines = []
         current_line = []
         current_line_width = 0
@@ -117,7 +123,19 @@ class BoxedHighlightCaption(CaptionType):
         if current_line:
             lines.append((current_line, current_line_width))
 
-        total_height = len(lines) * self.font.size * 1.5  # 1.5 for line spacing
+        # Determine which line contains the current word
+        current_line_index = 0
+        for i, (line, _) in enumerate(lines):
+            if any(word_index == current_word_index for _, word_index in line):
+                current_line_index = i
+                break
+
+        # Only render the current line
+        start_index = max(0, current_line_index - self.max_lines + 1)
+        end_index = start_index + self.max_lines
+        lines_to_render = lines[start_index:end_index]
+
+        total_height = len(lines_to_render) * self.font.size * 1.5  # 1.5 for line spacing
         start_y = max(self.font.size, int(y - total_height / 2))
 
         # Create a transparent overlay
@@ -130,7 +148,7 @@ class BoxedHighlightCaption(CaptionType):
         draw.rectangle([0, background_y, frame_width, background_y + background_height],
                        fill=self.background_color)
 
-        for line, line_width in lines:
+        for line, line_width in lines_to_render:
             x = int((frame_width - line_width) / 2)  # Center each line
             for word, word_index in line:
                 word_width, word_height = self.get_text_size(word + " ")
@@ -162,6 +180,7 @@ class BoxedHighlightCaption(CaptionType):
         frame_with_text = Image.alpha_composite(frame_pil.convert('RGBA'), overlay)
         return cv2.cvtColor(np.array(frame_with_text), cv2.COLOR_RGB2BGR)
 
+
 def transcribe_video(video_path: str, model: whisper.Whisper) -> List[List]:
     cache_file = f"{video_path}_transcription_cache.pkl"
     
@@ -191,7 +210,7 @@ def transcribe_video(video_path: str, model: whisper.Whisper) -> List[List]:
     
     return text_array
 
-def process_video(input_video: str, output_video: str, caption_type: CaptionType, font_path: str, font_size: int = 32):
+def process_video_for_captions(input_video: str, output_video: str, caption_type: CaptionType, font_path: str, font_size: int = 32):
     model = whisper.load_model("base")
 
     # Load the video using moviepy
@@ -266,6 +285,9 @@ def process_video(input_video: str, output_video: str, caption_type: CaptionType
     # Combine the processed video with the original audio
     final_video = processed_video.set_audio(audio)
 
+    # Ensure the output directory exists
+    os.makedirs(os.path.dirname(output_video), exist_ok=True)
+
     # Write the final video with audio
     final_video.write_videofile(output_video, codec='libx264', audio_codec='aac')
 
@@ -275,9 +297,8 @@ def process_video(input_video: str, output_video: str, caption_type: CaptionType
     print(f"Video processing complete. Output saved to {output_video}")
 
 if __name__ == "__main__":
-    input_video = "src/temp_storage/working/combined_output_sara_hq_longshot.mp4"
-    output_video = "src/temp_storage/working/sara_hq_w_captions_longshot.mp4"
-    
+    input_video = "src/temp_storage/a34b03d2-7190-45cc-b2e7-01e347b18675/working/final_video.mp4"
+    output_video = "src/temp_storage/working/finalvideo_w_captions.NINE_SIXTEEN.mp4"
     # Path to your Roboto font file
     roboto_font_path = "src/fonts/Roboto-Black.ttf"
     
@@ -295,11 +316,12 @@ if __name__ == "__main__":
     caption_type = BoxedHighlightCaption(
         font_path=roboto_font_path,
         font_size=72,
-        default_color=(255, 255, 255),  # Yellow text
-        highlight_color=(255, 0, 0),  # Opaque red highlight
-        outline_color=(0, 0, 0),
+        default_color=(255, 255, 255),  # White text
+        highlight_color=(255, 0, 0),    # Red highlight
+        outline_color=(0, 0, 0),        # Black outline
         outline_thickness=3,
-        background_color=(0, 0, 0, 0),  # Fully transparent background
-        background_padding=5  # 20 pixels padding around text
+        background_color=(0, 0, 0, 0),  # Transparent background
+        background_padding=5,
+        max_lines=1  # Set to 1 to display only one line at a time
     )
-    process_video(input_video, output_video, caption_type, font_path=roboto_font_path, font_size=32)
+    process_video_for_captions(input_video, output_video, caption_type, font_path=roboto_font_path, font_size=32)
