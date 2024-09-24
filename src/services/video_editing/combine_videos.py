@@ -1,8 +1,8 @@
 import moviepy.editor as mp
-def combine_videos_vertically(video1_path, video2_path, output_path, shift_video1=(0, 0), shift_video2=(0, 0)):
+def combine_videos_vertically(top_video_path, bottom_video_path, output_path, shift_top_video=(0, 0), shift_bottom_video=(0, -100)):
     # Load the videos
-    video1 = mp.VideoFileClip(video1_path)
-    video2 = mp.VideoFileClip(video2_path)
+    top_video = mp.VideoFileClip(top_video_path)
+    bottom_video = mp.VideoFileClip(bottom_video_path)
 
     # Function to center crop the video to 9:8 aspect ratio with shift
     def center_crop_to_9_8(video, shift):
@@ -22,8 +22,8 @@ def combine_videos_vertically(video1_path, video2_path, output_path, shift_video
         return video
 
     # Center crop both videos to make them 9:8 with shifts
-    video1_cropped = center_crop_to_9_8(video1, shift_video1)
-    video2_cropped = center_crop_to_9_8(video2, shift_video2)
+    video1_cropped = center_crop_to_9_8(top_video, shift_top_video)
+    video2_cropped = center_crop_to_9_8(bottom_video, shift_bottom_video)
 
     # Calculate the dimensions for the final video
     final_width = video1_cropped.w
@@ -39,17 +39,21 @@ def combine_videos_vertically(video1_path, video2_path, output_path, shift_video
         video2_resized.set_position(("center", final_height // 2))
     ], size=(final_width, final_height))
 
+    import os
+    # Ensure the output directory exists
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
     # Write the result to a file
     final_video.write_videofile(output_path, codec="libx264", fps=25)
 
     # Close the video clips
-    video1.close()
-    video2.close()
+    top_video.close()
+    bottom_video.close()
 
 if __name__ == "__main__":
     # Example usage
     combine_videos_vertically(
         "src/temp_storage/working/asset_edited_video_AspectRatio.SQUARE.mp4",
-        "src/temp_storage/working/sara_longshotat_ai_nova.mp4", 
-        "src/temp_storage/working/combined_output.mp4",
-        shift_video1=(0, 0), shift_video2=(0, -100))
+        "src/temp_storage/a34b03d2-7190-45cc-b2e7-01e347b18675/working/lipsync_video_Sara.mp4", 
+        "src/temp_storage/a34b03d2-7190-45cc-b2e7-01e347b18675/working/final_video.mp4",
+        shift_top_video=(0, 0), shift_bottom_video=(0, -100))

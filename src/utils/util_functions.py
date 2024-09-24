@@ -3,8 +3,16 @@ import aiohttp
 import aiofiles
 from src.models.base_models import AssetType
 from src.utils.file_handling import get_local_path
+import os
 
-async def download_video(url: str, output_path: str) -> None:
+async def download_video(url: str, output_path: str) -> str:
+
+    # if lipsync_video_url is None:
+    #     print("no url for video")
+    # Handle the case where there's no URL to download from
+    # Perhaps skip the download or use a default video
+        # return
+
     output_path_obj = Path(output_path)
     output_path_obj.parent.mkdir(parents=True, exist_ok=True)
     
@@ -16,6 +24,9 @@ async def download_video(url: str, output_path: str) -> None:
     return output_path
 
 def save_file_locally(path, file):
+      # Create the directory if it doesn't exist
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
     with open(path, "wb") as buffer:
         buffer.write(file.file.read())
     return path
