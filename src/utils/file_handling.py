@@ -16,15 +16,15 @@ class SupabasePaths:
     VOICES = "voices"
     PROJECTS = "projects"
 
-def get_local_path(project_id: str, folder_type: str, filename: str) -> Path:
+def get_local_path(project_id: str, folder_type: str, filename: str) -> str:
     """
     Generate a local file path based on the project ID and file type.
     """
     base_path = os.path.join(LocalPaths.TEMP_STORAGE, str(project_id))
     if folder_type == LocalPaths.ASSETS:
-        return Path(os.path.join(base_path, LocalPaths.ASSETS, filename))
+        return str(os.path.join(base_path, LocalPaths.ASSETS, filename))
     elif folder_type == LocalPaths.WORKING:
-        return Path(os.path.join(base_path, LocalPaths.WORKING, filename))
+        return str(os.path.join(base_path, LocalPaths.WORKING, filename))
     else:
         raise ValueError(f"Invalid folder type: {folder_type}")
     
