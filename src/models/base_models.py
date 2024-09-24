@@ -1,5 +1,5 @@
-from pydantic import BaseModel, HttpUrl
-from typing import List, Optional, Dict, Any
+from pydantic import BaseModel
+from typing import List, Optional, Dict, Any, Union
 from uuid import UUID
 from datetime import datetime
 from enum import Enum
@@ -42,9 +42,11 @@ class AspectRatio(str, Enum):
 # temporary entites.
 class Asset(BaseModel):
     type: AssetType
-    url: Optional[HttpUrl]
-    local_path: Optional[str]
-    description: Optional[str]
+    url: Optional[Union[str, None]] = None
+    squared_video_url: Optional[Union[str,None]] = None
+    local_path: Optional[Union[str, None]] = None
+    squared_video_local_path: Optional[Union[str,None]] = None
+    description: Optional[Union[str, None]] = None
 
 
 class VideoConfiguration(BaseModel):
@@ -66,9 +68,9 @@ class Script(BaseModel):
 class ProductBase(BaseModel):
     name: str
     description: str
-    product_link: Optional[HttpUrl] = None
-    logo_url: Optional[HttpUrl] = None
-    thumbnail_url: Optional[HttpUrl] = None
+    product_link: Optional[str] = None
+    logo_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
 
 
 class Product(ProductBase):
@@ -78,7 +80,7 @@ class Product(ProductBase):
   
     def serialize_for_db(self) -> Dict[str, Any]:
         data = self.model_dump()
-        # Convert HttpUrl objects to strings
+        # Convert str objects to strings
         for field in ['product_link', 'thumbnail_url', 'logo_url']:
             if data[field] is not None:
                 data[field] = str(data[field])
@@ -96,8 +98,8 @@ class Product(ProductBase):
 class ActorBase(BaseModel):
     name: str
     gender:str
-    full_video_link: HttpUrl
-    thumbnail_image_url: Optional[HttpUrl]
+    full_video_link: str
+    thumbnail_image_url: Optional[str]
     default_voice_id: UUID
 
 class Actor(ActorBase):
@@ -109,7 +111,7 @@ class VoiceBase(BaseModel):
     name: str
     gender: str
     voice_identifier: OpenAIVoiceIdentifier
-    sample_audio_url: Optional[HttpUrl]=None
+    sample_audio_url: Optional[str]=None
 
 class Voice(VoiceBase):
     id: UUID
@@ -118,7 +120,7 @@ class Voice(VoiceBase):
 class VideoLayoutBase(BaseModel):
     name: str
     description: Optional[str]
-    thumbnail_url: Optional[HttpUrl]
+    thumbnail_url: Optional[str]
 
 class VideoLayout(VideoLayoutBase):
     id: UUID
@@ -127,6 +129,7 @@ class VideoLayout(VideoLayoutBase):
 class Project(BaseModel):
     id: UUID
     product_id: UUID
+    user_id: UUID
     product_base: ProductBase
     status: ProjectStatus
     assets: List[Asset] = []
@@ -141,10 +144,11 @@ class Project(BaseModel):
     voice_base: Optional[VoiceBase] = None
     video_layout_id: Optional[UUID] = None
     video_layout_base: Optional[VideoLayoutBase] = None
-    t2s_audio_url: Optional[HttpUrl] = None
-    lipsync_video_url: Optional[HttpUrl] = None
+    t2s_audio_url: Optional[str] = None
+    lipsync_prediction_id: Optional[str] = None
+    lipsync_video_url: Optional[str] = None
     final_video_duration: Optional[float] = None
-    final_video_url: Optional[HttpUrl] = None
+    final_video_url: Optional[str] = None
 
     def serialize_for_db(self) -> Dict[str, Any]:
         data = self.dict()
@@ -163,7 +167,7 @@ class Project(BaseModel):
         data['created_at'] = data['created_at'].isoformat()
         data['updated_at'] = data['updated_at'].isoformat()
         
-        # Convert HttpUrl objects to strings
+        # Convert str objects to strings
         if data['lipsync_video_url'] is not None:
             data['lipsync_video_url'] = str(data['lipsync_video_url'])
         if data['final_video_url'] is not None:

@@ -3,7 +3,6 @@ from uuid import UUID
 from typing import List
 from src.supabase_tools.supabase_client import SUPABASE_CLIENT
 from src.utils.constants import TableNames
-from pydantic.networks import HttpUrl
 
 async def add_product_to_db(product: Product):
     serialized_product = product.serialize_for_db()
@@ -40,7 +39,7 @@ if __name__ == "__main__":
             id=UUID("12345678-1234-5678-1234-567812345678"),
             name="Sample Product",
             description="This is a sample product",
-            product_link=HttpUrl("https://example.com"),
+            product_link=str("https://example.com"),
             logo_url=None,
             thumbnail_url=None,
             created_at=datetime.now(),
