@@ -23,75 +23,81 @@ def save_intermediate_clip(clip, filename, fps=25):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     clip.write_videofile(output_path, codec="libx264", fps=fps)
 
-async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_ratio: AspectRatio) -> str:
-    if aspect_ratio == AspectRatio.SQUARE:
-        width, height = 1080, 1080
-    elif aspect_ratio == AspectRatio.NINE_SIXTEEN:
-        width, height = 1080, 1920
-    else:
-        raise ValueError("Unsupported aspect ratio")
 
-    asset_duration = final_video_length / len(assets)
-    background_color = (245, 243, 242)
-    background = ColorClip(size=(width, height), color=background_color, duration=asset_duration)
+async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_ratio: AspectRatio, asset_edited_video_path:str) -> str:
+    try:
+        if aspect_ratio == AspectRatio.SQUARE.value:
+            width, height = 1080, 1080
+        elif aspect_ratio == AspectRatio.NINE_SIXTEEN.value:
+            width, height = 1080, 1920
+        else:
+            raise ValueError("Unsupported aspect ratio")
 
-    clips = []
-    for index, asset in enumerate(assets):
-        try:
-            if asset.type == AssetType.VIDEO:
-                clip = VideoFileClip(asset.local_path).without_audio()
-                save_intermediate_clip(clip, f"original_video_{index}.mp4")
-                if clip.duration < asset_duration:
-                    clip = clip.loop(duration=asset_duration)
+        asset_duration = final_video_length / len(assets)
+        background_color = (245, 243, 242)
+        background = ColorClip(size=(width, height), color=background_color, duration=asset_duration)
+
+        clips = []
+        for index, asset in enumerate(assets):
+            try:
+                if asset.type == AssetType.VIDEO:
+                    clip = VideoFileClip(asset.local_path).without_audio()
+                    save_intermediate_clip(clip, f"original_video_{index}.mp4")
+                    if clip.duration < asset_duration:
+                        clip = clip.loop(duration=asset_duration)
+                    else:
+                        clip = clip.subclip(0, asset_duration)
+                    save_intermediate_clip(clip, f"duration_adjusted_video_{index}.mp4")
+                elif asset.type == AssetType.IMAGE:
+                    clip = ImageClip(asset.local_path).set_duration(asset_duration)
+                    save_intermediate_clip(clip, f"original_image_{index}.mp4")
                 else:
-                    clip = clip.subclip(0, asset_duration)
-                save_intermediate_clip(clip, f"duration_adjusted_video_{index}.mp4")
-            elif asset.type == AssetType.IMAGE:
-                clip = ImageClip(asset.local_path).set_duration(asset_duration)
-                save_intermediate_clip(clip, f"original_image_{index}.mp4")
-            else:
-                print(f"Warning: Unsupported asset type: {asset.type}. Skipping this asset.")
+                    print(f"Warning: Unsupported asset type: {asset.type}. Skipping this asset.")
+                    continue
+
+                clip_aspect_ratio = clip.w / clip.h
+                if clip_aspect_ratio > width / height:
+                    new_width = width
+                    new_height = int(width / clip_aspect_ratio)
+                else:
+                    new_height = height
+                    new_width = int(height * clip_aspect_ratio)
+
+                clip = clip.resize(newsize=(new_width, new_height))
+                #save_intermediate_clip(clip, f"resized_clip_{index}.mp4")
+                
+                clip = clip.set_position(("center", "center"))
+                #save_intermediate_clip(clip, f"positioned_clip_{index}.mp4")
+
+                composite_clip = CompositeVideoClip([background.copy(), clip], size=(width, height))
+                composite_clip = composite_clip.set_duration(asset_duration)
+                #save_intermediate_clip(composite_clip, f"composite_clip_{index}.mp4")
+                
+                clips.append(composite_clip)
+            except Exception as e:
+                print(f"Error processing asset {index}: {str(e)}")
+                import traceback
+                print(traceback.format_exc())
                 continue
 
-            clip_aspect_ratio = clip.w / clip.h
-            if clip_aspect_ratio > width / height:
-                new_width = width
-                new_height = int(width / clip_aspect_ratio)
-            else:
-                new_height = height
-                new_width = int(height * clip_aspect_ratio)
+        if not clips:
+            raise ValueError("No valid clips to concatenate")
 
-            clip = clip.resize(newsize=(new_width, new_height))
-            #save_intermediate_clip(clip, f"resized_clip_{index}.mp4")
-            
-            clip = clip.set_position(("center", "center"))
-            #save_intermediate_clip(clip, f"positioned_clip_{index}.mp4")
+        final_clip = concatenate_videoclips(clips, method="compose")
+        os.makedirs(os.path.dirname(asset_edited_video_path), exist_ok=True)
+        final_clip.write_videofile(asset_edited_video_path, codec="libx264", fps=25)
 
-            composite_clip = CompositeVideoClip([background.copy(), clip], size=(width, height))
-            composite_clip = composite_clip.set_duration(asset_duration)
-            #save_intermediate_clip(composite_clip, f"composite_clip_{index}.mp4")
-            
-            clips.append(composite_clip)
-        except Exception as e:
-            print(f"Error processing asset {index}: {str(e)}")
-            import traceback
-            print(traceback.format_exc())
-            continue
+        final_clip.close()
+        for clip in clips:
+            clip.close()
+        background.close()
 
-    if not clips:
-        raise ValueError("No valid clips to concatenate")
-
-    final_clip = concatenate_videoclips(clips, method="compose")
-    asset_edited_video_path = str(os.path.join(Constants.LOCAL_STORAGE_BASE_PATH, "working", f"asset_edited_video_{aspect_ratio}.mp4"))
-    os.makedirs(os.path.dirname(asset_edited_video_path), exist_ok=True)
-    final_clip.write_videofile(asset_edited_video_path, codec="libx264", fps=25)
-
-    final_clip.close()
-    for clip in clips:
-        clip.close()
-    background.close()
-
-    return asset_edited_video_path
+        return asset_edited_video_path
+    except Exception as e:
+        print(f"An error occurred while editing the asset video: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        raise
 
 if __name__ == "__main__":
     import asyncio

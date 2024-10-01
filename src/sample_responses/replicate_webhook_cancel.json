@@ -1,0 +1,24 @@
+{
+    "completed_at": "2024-10-01T20:45:34.217712844Z",
+    "created_at": "2024-10-01T20:45:09.4Z",
+    "data_removed": false,
+    "error": null,
+    "id": "dkaxhn35k1rgg0cj97abbbhq9c",
+    "input": {
+        "audio_input": "https://kooaoegvtnxgrxbyuwvu.supabase.co/storage/v1/object/public/prod-bucket/projects/f707493f-2385-45ba-8b25-bf2054a316a0/t2s_nova.wav?",
+        "video_input": "https://reels-ai-pro-bucket.s3.ap-south-1.amazonaws.com/prod-bucket/actors/4e4a6cc7-f044-4445-9548-f0933b0cbe0e/portrait_video.mp4"
+    },
+    "logs": "",
+    "model": "douwantech/musetalk",
+    "output": null,
+    "status": "canceled",
+    "urls": {
+        "cancel": "https://api.replicate.com/v1/predictions/dkaxhn35k1rgg0cj97abbbhq9c/cancel",
+        "get": "https://api.replicate.com/v1/predictions/dkaxhn35k1rgg0cj97abbbhq9c"
+    },
+    "version": "5501004e78525e4bbd9fa20d1e75ad51fddce5a274bec07b9b16d685e34eeaf8",
+    "webhook": "https://brave-happily-wahoo.ngrok-free.app/webhook/replicate",
+    "webhook_events_filter": [
+        "completed"
+    ]
+}

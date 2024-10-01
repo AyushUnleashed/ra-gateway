@@ -15,9 +15,14 @@ class ProjectStatus(str, Enum):
     DRAFT = "draft"
     PROCESSING = "processing"
     AUDIO_READY = "audio_ready"
-    LIPSYNC_READY = "lipsync_ready"
+    ACTOR_GENERATION_STARTED = "actor_generation_started"
+    ACTOR_GENERATION_FAILED = "actor_generation_failed"
+    ACTOR_GENERATION_COMPLETED = "actor_generation_completed"
+    ACTOR_GENERATION_CANCELLED= "actor_generation_cancelled"
+    
     COMPLETED = "completed"
     FAILED = "failed"
+    TEST = "test"
 
 class DurationOption(int,Enum):
     SHORT = 15
@@ -43,10 +48,14 @@ class AspectRatio(str, Enum):
 class Asset(BaseModel):
     type: AssetType
     url: Optional[Union[str, None]] = None
-    squared_video_url: Optional[Union[str,None]] = None
     local_path: Optional[Union[str, None]] = None
-    squared_video_local_path: Optional[Union[str,None]] = None
     description: Optional[Union[str, None]] = None
+
+    def serialize_for_db(self) -> Dict[str, Any]:
+        data = self.model_dump(exclude={"local_path"})
+        # Convert enum to its value
+        data['type'] = data['type'].value
+        return data
 
 
 class VideoConfiguration(BaseModel):
@@ -55,10 +64,19 @@ class VideoConfiguration(BaseModel):
     cta: str
     direction: str
 
+    def serialize_for_db(self) -> Dict[str, Any]:
+        return self.model_dump()
+
 class Script(BaseModel):
     id: UUID
     title: str
     content: str
+
+    def serialize_for_db(self) -> Dict[str, Any]:
+        data = self.model_dump()
+        # Convert UUID to string
+        data['id'] = str(data['id'])
+        return data
 
 
 
@@ -75,18 +93,15 @@ class ProductBase(BaseModel):
 
 class Product(ProductBase):
     id: UUID
+    user_id: UUID
     created_at: datetime
     updated_at: datetime
   
     def serialize_for_db(self) -> Dict[str, Any]:
         data = self.model_dump()
-        # Convert str objects to strings
-        for field in ['product_link', 'thumbnail_url', 'logo_url']:
-            if data[field] is not None:
-                data[field] = str(data[field])
-        
         # Convert UUID to string
         data['id'] = str(data['id'])
+        data['user_id'] = str(data['user_id'])
         
         # Convert datetime objects to ISO format strings
         data['created_at'] = data['created_at'].isoformat()
@@ -97,7 +112,7 @@ class Product(ProductBase):
 # Actor
 class ActorBase(BaseModel):
     name: str
-    gender:str
+    gender: str
     full_video_link: str
     thumbnail_image_url: Optional[str]
     default_voice_id: UUID
@@ -105,16 +120,31 @@ class ActorBase(BaseModel):
 class Actor(ActorBase):
     id: UUID
 
+    def serialize_for_db(self) -> Dict[str, Any]:
+        data = self.model_dump()
+        # Convert UUID to string
+        data['id'] = str(data['id'])
+        data['default_voice_id'] = str(data['default_voice_id'])
+        return data
+
 
 # Voice
 class VoiceBase(BaseModel):
     name: str
     gender: str
     voice_identifier: OpenAIVoiceIdentifier
-    sample_audio_url: Optional[str]=None
+    sample_audio_url: Optional[str] = None
 
 class Voice(VoiceBase):
     id: UUID
+
+    def serialize_for_db(self) -> Dict[str, Any]:
+        data = self.model_dump()
+        # Convert UUID to string
+        data['id'] = str(data['id'])
+        # Convert Enum to string
+        data['voice_identifier'] = data['voice_identifier'].value
+        return data
 
 # VideoLayout
 class VideoLayoutBase(BaseModel):
@@ -124,38 +154,55 @@ class VideoLayoutBase(BaseModel):
 
 class VideoLayout(VideoLayoutBase):
     id: UUID
+
+    def serialize_for_db(self) -> Dict[str, Any]:
+        data = self.model_dump()
+        # Convert UUID to string
+        data['id'] = str(data['id'])
+        return data
     
-    
-class Project(BaseModel):
+
+class ProjectDTO(BaseModel):
     id: UUID
-    product_id: UUID
     user_id: UUID
-    product_base: ProductBase
+    product_id: UUID
     status: ProjectStatus
-    assets: List[Asset] = []
+
     created_at: datetime
     updated_at: datetime
-    final_script: Optional[str] = None
+    final_video_url: Optional[str] = None
+    
+class Project(ProjectDTO):
+    actor_id: Optional[UUID] = None
+    voice_id: Optional[UUID] = None
+    video_layout_id: Optional[UUID] = None
+
+    assets: List[Asset] = []
     video_configuration: Optional[VideoConfiguration] = None
     script: Optional[Script] = None
-    actor_id: Optional[UUID] = None
+
+    # cache
+    product_base: Optional[ProductBase] = None
     actor_base: Optional[ActorBase] = None
-    voice_id: Optional[UUID] = None
     voice_base: Optional[VoiceBase] = None
-    video_layout_id: Optional[UUID] = None
     video_layout_base: Optional[VideoLayoutBase] = None
+
+    # final data 
+    final_script: Optional[str] = None
     t2s_audio_url: Optional[str] = None
     lipsync_prediction_id: Optional[str] = None
     lipsync_video_url: Optional[str] = None
     final_video_duration: Optional[float] = None
-    final_video_url: Optional[str] = None
+    
 
     def serialize_for_db(self) -> Dict[str, Any]:
-        data = self.dict()
-        
+        data = self.model_dump(exclude={"product_base", "actor_base", "voice_base","video_layout_base","script"})
+        print(data)
+
         # Convert UUID to string
         data['id'] = str(data['id'])
         data['product_id'] = str(data['product_id'])
+        data['user_id'] = str(data['user_id'])
         if data['actor_id'] is not None:
             data['actor_id'] = str(data['actor_id'])
         if data['voice_id'] is not None:
@@ -167,27 +214,19 @@ class Project(BaseModel):
         data['created_at'] = data['created_at'].isoformat()
         data['updated_at'] = data['updated_at'].isoformat()
         
-        # Convert str objects to strings
-        if data['lipsync_video_url'] is not None:
-            data['lipsync_video_url'] = str(data['lipsync_video_url'])
-        if data['final_video_url'] is not None:
-            data['final_video_url'] = str(data['final_video_url'])
-        
-        # Convert nested objects to JSON serializable dictionaries
-        if data['product_base'] is not None:
-            data['product_base'] = data['product_base'].dict()
-        if data['video_configuration'] is not None:
-            data['video_configuration'] = data['video_configuration'].dict()
-        if data['script'] is not None:
-            data['script'] = data['script'].dict()
-        if data['actor_base'] is not None:
-            data['actor_base'] = data['actor_base'].dict()
-        if data['voice_base'] is not None:
-            data['voice_base'] = data['voice_base'].dict()
-        if data['video_layout_base'] is not None:
-            data['video_layout_base'] = data['video_layout_base'].dict()
-        
         return data
 
     
  
+class User(BaseModel):
+    id: UUID
+    full_name: str
+    email: str
+    avatar_url: Optional[str] = None
+    credits: int
+
+    def serialize_for_db(self) -> Dict[str, Any]:
+        data = self.model_dump()
+        # Convert UUID to string
+        data['id'] = str(data['id'])
+        return data

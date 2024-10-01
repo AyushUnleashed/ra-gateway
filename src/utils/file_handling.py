@@ -5,7 +5,7 @@ from supabase import create_client, Client
 
 # Constants for local paths
 class LocalPaths:
-    TEMP_STORAGE = Path("src/temp_storage")
+    TEMP_STORAGE = os.path.join("src", "temp_storage")
     ASSETS = "assets"
     WORKING = "working"
 

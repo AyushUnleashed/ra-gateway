@@ -83,7 +83,7 @@ async def generate_t2s_audio(project_id: str, script: str, voice_identifier: Ope
 
     cache = False
     if cache == True:
-        return "https://kooaoegvtnxgrxbyuwvu.supabase.co/storage/v1/object/public/prod-bucket/projects/test_project_id/t2s_nova.wav",22.368
+        return "https://reels-ai-pro-bucket.s3.ap-south-1.amazonaws.com/prod-bucket/voices/a059382e-5d8d-49ec-96d1-eb7e46c04e31/t2s_nova.wav",22.368
 
     t2s_output_audio_path = f"{Constants.LOCAL_STORAGE_BASE_PATH}/{project_id}/working/t2s_{voice_identifier.value}.wav"
     # Generate text to speech audio
