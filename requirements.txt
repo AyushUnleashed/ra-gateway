@@ -18,3 +18,5 @@ numpy==1.24.3
 supabase
 python-multipart
 librosa
+PyJWT
+aiosmtplib
