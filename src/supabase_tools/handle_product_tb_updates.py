@@ -15,8 +15,8 @@ async def get_product_from_db(product_id: UUID) -> Product:
     product_data = response.data
     return Product(**product_data)
 
-async def get_all_products_from_db() -> List[Product]:
-    response = SUPABASE_CLIENT.table(TableNames.PRODUCTS).select("*").execute()
+async def get_all_products_from_db(user_id: UUID) -> List[Product]:
+    response = SUPABASE_CLIENT.table(TableNames.PRODUCTS).select("*").eq("user_id", str(user_id)).execute()
     products_data = response.data
     for product in products_data:
         print(product)
