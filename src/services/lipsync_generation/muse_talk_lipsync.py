@@ -32,6 +32,8 @@ async def create_muste_talk_prediction(video_input_url: str, audio_input_url: st
             "webhook_events_filter": ["completed"]
         }
 
+        print(input_data)
+
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 "https://api.replicate.com/v1/predictions",
@@ -114,11 +116,11 @@ async def poll_for_lipsync_video(prediction_id: str, max_retries: int = 60, retr
 if __name__ == "__main__":
 
     async def main():
-        output = await create_muste_talk_prediction(
-            video_input_url="https://kooaoegvtnxgrxbyuwvu.supabase.co/storage/v1/object/public/prod-bucket/actors/4e4a6cc7-f044-4445-9548-f0933b0cbe0e/portrait_video.mp4",
-            audio_input_url="https://kooaoegvtnxgrxbyuwvu.supabase.co/storage/v1/object/public/prod-bucket/projects/test_project_id/t2s_nova.wav"
+        prediction_id = await create_muste_talk_prediction(
+            video_input_url="https://reels-ai-pro-bucket.s3.ap-south-1.amazonaws.com/prod-bucket/actors/4e4a6cc7-f044-4445-9548-f0933b0cbe0e/portrait_video.mp4",
+            audio_input_url="https://reels-ai-pro-bucket.s3.ap-south-1.amazonaws.com/prod-bucket/voices/a059382e-5d8d-49ec-96d1-eb7e46c04e31/t2s_nova.wav"
         )
-        MuseTalkPredictionResponse(**output)
+        #MuseTalkPredictionResponse(prediction_id)
 
         # print("Lipsync video URL:", lipsync_video_url)
     import asyncio
