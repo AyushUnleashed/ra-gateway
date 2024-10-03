@@ -31,4 +31,4 @@ from src.api.webhook_routes import webhook_router
 app.include_router(main_router)
 app.include_router(webhook_router)
 if __name__ == '__main__':
-    uvicorn.run("app:app", host="0.0.0.0", port=5151, reload=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=5151, reload=True, workers=2)

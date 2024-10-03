@@ -273,17 +273,15 @@ async def get_script(project_id: UUID):
 
     return [project.script.dict()]
 
-@main_router.post("/api/projects/{project_id}/script")
-async def finalize_script(project_id: UUID):
+@main_router.put("/api/projects/{project_id}/script")
+async def finalize_script(project_id: UUID, body: dict):
     if project_id not in projects_in_memory:
         raise HTTPException(status_code=404, detail="Project not found")
 
     project = projects_in_memory[project_id]
 
-    if not project.script:
-        raise HTTPException(status_code=404, detail="Script not found")
-
-    project.final_script = project.script.content
+    project.final_script = body['script']
+    print(f"\n\n\n {project.final_script} \n\n\n")
     project.updated_at = datetime.now()
 
     return {"final_script_set": True, "message": "Script has been set as final script for the project"}
