@@ -4,8 +4,7 @@ FROM python:3.9-slim
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the current directory contents into the container at /app
-COPY . /app
+ADD requirements.txt /app/requirements.txt
 
 # Set environment variables needed during build
 ARG SUPABASE_URL
@@ -27,6 +26,8 @@ ENV SUPABASE_JWT_SECRET=$SUPABASE_JWT_SECRET
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+
+ADD . /app/
 
 # Make port 5151 available to the world outside this container
 EXPOSE 5151
