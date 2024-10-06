@@ -15,6 +15,9 @@ app = FastAPI(
 # List your frontend domain(s) here
 origins = [
     "http://localhost:3000",
+    "https://www.reelsai.pro",
+    "https://reelsai.pro",
+    "https://brave-happily-wahoo.ngrok-free.app"
 ]
 
 app.add_middleware(
@@ -31,4 +34,4 @@ from src.api.webhook_routes import webhook_router
 app.include_router(main_router)
 app.include_router(webhook_router)
 if __name__ == '__main__':
-    uvicorn.run("app:app", host="0.0.0.0", port=5151, reload=True, workers=2)
+    uvicorn.run("app:app", host="0.0.0.0", port=5151, reload=True)

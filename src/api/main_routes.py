@@ -514,7 +514,7 @@ async def video_post_processing(project: Project):
         project.updated_at = datetime.now()
 
         await update_project_in_db(project)
-        #await send_video_ready_alert(user_email)
+        # await send_video_ready_alert(user_email)
         return project
 
     except Exception as e:
