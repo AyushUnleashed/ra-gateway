@@ -1,6 +1,8 @@
 name: Docker Image CI for reelsai.pro
 
-# on:
+on:
+  workflow_dispatch:
+
 #   push:
 #     branches: [ "main" ]
 
