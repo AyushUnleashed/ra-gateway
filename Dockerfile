@@ -18,7 +18,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip install python-multipart
+RUN pip install python-multipart newrelic
 # Set build arguments
 ARG SUPABASE_URL
 ARG SUPABASE_KEY
@@ -28,6 +28,8 @@ ARG OPENAI_API_KEY
 ARG RAI_GATEWAY_BACKEND_URL
 ARG SUPABASE_JWT_SECRET
 ARG ZOHO_APP_PASSWORD
+ARG NEW_RELIC_LICENSE_KEY
+ARG NEW_RELIC_APP_NAME
 
 # Set environment variables
 ENV SUPABASE_URL=$SUPABASE_URL \
@@ -39,8 +41,16 @@ ENV SUPABASE_URL=$SUPABASE_URL \
     SUPABASE_JWT_SECRET=$SUPABASE_JWT_SECRET \
     ZOHO_APP_PASSWORD=$ZOHO_APP_PASSWORD
 
+    ENV NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
+    ENV NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME}
+    
+
 # Copy the rest of the application
 COPY . .
+
+# Set the entry point to run New Relic and Uvicorn
+ENTRYPOINT ["newrelic-admin", "run-program"]
+
 
 # Make port 5151 available to the world outside this container
 EXPOSE 5151
