@@ -42,7 +42,7 @@ jobs:
         NEW_RELIC_LICENSE_KEY: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
         NEW_RELIC_APP_NAME: ${{ secrets.NEW_RELIC_APP_NAME }}
       run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA \
           --build-arg SUPABASE_URL=$SUPABASE_URL \
           --build-arg SUPABASE_KEY=$SUPABASE_KEY \
           --build-arg SUPABASE_SERVICE_KEY=$SUPABASE_SERVICE_KEY \
@@ -54,7 +54,7 @@ jobs:
           --build-arg NEW_RELIC_LICENSE_KEY=$NEW_RELIC_LICENSE_KEY \
           --build-arg NEW_RELIC_APP_NAME=$NEW_RELIC_APP_NAME \
           .
-          
+
         docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
         
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA
