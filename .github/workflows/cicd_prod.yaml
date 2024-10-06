@@ -1,8 +1,8 @@
 name: Docker Image CI for reelsai.pro
 
-on:
-  push:
-    branches: [ "main" ]
+# on:
+#   push:
+#     branches: [ "main" ]
 
 jobs:
   build-and-deploy:
@@ -31,12 +31,12 @@ jobs:
         ECR_REPOSITORY: reelsai-pro  # Update this to your ECR repository name
         IMAGE_TAG_SHA: cicd-prod-${{ github.sha }}
         IMAGE_TAG_LATEST: cicd-prod-latest
-        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ vars.SUPABASE_KEY }}
         SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        RAI_GATEWAY_BACKEND_URL: ${{ secrets.RAI_GATEWAY_BACKEND_URL }}
+        RAI_GATEWAY_BACKEND_URL: ${{ vars.RAI_GATEWAY_BACKEND_URL }}
         SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
         ZOHO_APP_PASSWORD: ${{ secrets.ZOHO_APP_PASSWORD }}
         NEW_RELIC_LICENSE_KEY: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
@@ -60,8 +60,8 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
 
-    - name: Deploy to App Runner
-      run: |
-        aws apprunner start-deployment \
-          --service-arn ${{ secrets.APPRUNNER_SERVICE_ARN }} \
-          --region ap-south-1
+    # - name: Deploy to App Runner
+    #   run: |
+    #     aws apprunner start-deployment \
+    #       --service-arn ${{ secrets.APPRUNNER_SERVICE_ARN }} \
+    #       --region ap-south-1
