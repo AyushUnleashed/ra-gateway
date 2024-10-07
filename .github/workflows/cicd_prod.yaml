@@ -39,7 +39,8 @@ jobs:
         IMAGE_TAG_LATEST: cicd-prod-latest
         NEW_RELIC_APP_NAME: ra-gateway-prod
       run: |
-        docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG_SHA \
+        DOCKER_BUILDKIT=0 docker build \
+          --tag $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG_SHA \
           --build-arg SUPABASE_URL=${{ vars.SUPABASE_URL }} \
           --build-arg SUPABASE_KEY=${{ vars.SUPABASE_KEY }} \
           --build-arg SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }} \
