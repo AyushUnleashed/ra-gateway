@@ -12,48 +12,28 @@ env:
   CONTAINER_NAME: reelsai-pro
 
 jobs:
-  build-and-deploy:
-    name: Build and Deploy
-    runs-on: ubuntu-latest
-    environment: prod
-
-    steps:
-    - name: Check out code
-      uses: actions/checkout@v2
-
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
-
-    - name: Build, tag, and push image to Amazon ECR
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG_SHA: cicd-prod-${{ github.sha }}
-        IMAGE_TAG_LATEST: cicd-prod-latest
-        NEW_RELIC_APP_NAME: ra-gateway-prod
-      run: |
-        docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG_SHA \
-          --build-arg SUPABASE_URL=${{ vars.SUPABASE_URL }} \
-          --build-arg SUPABASE_KEY=${{ vars.SUPABASE_KEY }} \
-          --build-arg SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }} \
-          --build-arg REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }} \
-          --build-arg OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
-          --build-arg RAI_GATEWAY_BACKEND_URL=${{ vars.RAI_GATEWAY_BACKEND_URL }} \
-          --build-arg SUPABASE_JWT_SECRET=${{ secrets.SUPABASE_JWT_SECRET }} \
-          --build-arg ZOHO_APP_PASSWORD=${{ secrets.ZOHO_APP_PASSWORD }} \
-          --build-arg NEW_RELIC_LICENSE_KEY=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
-          --build-arg NEW_RELIC_APP_NAME=${{ env.NEW_RELIC_APP_NAME }} \
-          .
-        docker tag $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG_SHA $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG_LATEST
-        docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG_SHA
-        docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG_LATEST
+  - name: Build, tag, and push image to Amazon ECR
+    env:
+      ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      IMAGE_TAG_SHA: cicd-prod-${{ github.sha }}
+      IMAGE_TAG_LATEST: cicd-prod-latest
+      NEW_RELIC_APP_NAME: ra-gateway-prod
+    run: |
+      docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG_SHA \
+        --build-arg SUPABASE_URL=${{ vars.SUPABASE_URL }} \
+        --build-arg SUPABASE_KEY=${{ vars.SUPABASE_KEY }} \
+        --build-arg SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }} \
+        --build-arg REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }} \
+        --build-arg OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+        --build-arg RAI_GATEWAY_BACKEND_URL=${{ vars.RAI_GATEWAY_BACKEND_URL }} \
+        --build-arg SUPABASE_JWT_SECRET=${{ secrets.SUPABASE_JWT_SECRET }} \
+        --build-arg ZOHO_APP_PASSWORD=${{ secrets.ZOHO_APP_PASSWORD }} \
+        --build-arg NEW_RELIC_LICENSE_KEY=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
+        --build-arg NEW_RELIC_APP_NAME=$NEW_RELIC_APP_NAME \
+        .
+      docker tag $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG_SHA $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG_LATEST
+      docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG_SHA
+      docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG_LATEST
 
     - name: Deploy to EC2
       env:
