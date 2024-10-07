@@ -39,8 +39,8 @@ jobs:
         IMAGE_TAG_LATEST: cicd-prod-latest
         NEW_RELIC_APP_NAME: ra-gateway-prod
       run: |
-        DOCKER_BUILDKIT=0 docker build \
-          --tag $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG_SHA \
+        docker build \
+          --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA \
           --build-arg SUPABASE_URL=${{ vars.SUPABASE_URL }} \
           --build-arg SUPABASE_KEY=${{ vars.SUPABASE_KEY }} \
           --build-arg SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }} \
@@ -52,9 +52,9 @@ jobs:
           --build-arg NEW_RELIC_LICENSE_KEY=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
           --build-arg NEW_RELIC_APP_NAME=$NEW_RELIC_APP_NAME \
           .
-        docker tag $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG_SHA $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG_LATEST
-        docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG_SHA
-        docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG_LATEST
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
 
     - name: Deploy to EC2
       env:
