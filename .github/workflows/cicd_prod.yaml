@@ -116,7 +116,7 @@ jobs:
           echo "========================================================"
 
           # SSH into the EC2 instance and run deployment commands
-          ssh -o StrictHostKeyChecking=no -i private_key ${USER}@${HOST} bash -s << EOF
+          ssh -o StrictHostKeyChecking=no -i private_key ${USER}@${HOST} bash -s <<- EOF
             set -e  # Exit immediately if a command exits with a non-zero status
 
             echo "===== EC2 Instance Environment Variables ====="
