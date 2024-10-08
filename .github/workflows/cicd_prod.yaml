@@ -24,73 +24,99 @@ env:
   APP_ENV: prod
 
 jobs:
-  build-and-deploy:
-    name: Build and Deploy
+  build:
+    name: Build
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG_SHA: cicd-prod-${{ github.sha }}
+          IMAGE_TAG_LATEST: cicd-prod-latest
+        run: |
+          docker build \
+            --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA \
+            --build-arg SUPABASE_URL="${SUPABASE_URL}" \
+            --build-arg SUPABASE_KEY="${SUPABASE_KEY}" \
+            --build-arg SUPABASE_SERVICE_KEY="${SUPABASE_SERVICE_KEY}" \
+            --build-arg REPLICATE_API_TOKEN="${REPLICATE_API_TOKEN}" \
+            --build-arg OPENAI_API_KEY="${OPENAI_API_KEY}" \
+            --build-arg RAI_GATEWAY_BACKEND_URL="${RAI_GATEWAY_BACKEND_URL}" \
+            --build-arg SUPABASE_JWT_SECRET="${SUPABASE_JWT_SECRET}" \
+            --build-arg ZOHO_APP_PASSWORD="${ZOHO_APP_PASSWORD}" \
+            --build-arg NEW_RELIC_LICENSE_KEY="${NEW_RELIC_LICENSE_KEY}" \
+            --build-arg NEW_RELIC_APP_NAME="${NEW_RELIC_APP_NAME}" \
+            --build-arg SENTRY_DSN="${SENTRY_DSN}" \
+            --build-arg APP_ENV="${APP_ENV}" \
+            .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: build
     environment: prod
 
     steps:
-    - name: Check out code
-      uses: actions/checkout@v2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
-
-    - name: Build, tag, and push image to Amazon ECR
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG_SHA: cicd-prod-${{ github.sha }}
-        IMAGE_TAG_LATEST: cicd-prod-latest
-      run: |
-        docker build \
-          --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA \
-          --build-arg SUPABASE_URL="${SUPABASE_URL}" \
-          --build-arg SUPABASE_KEY="${SUPABASE_KEY}" \
-          --build-arg SUPABASE_SERVICE_KEY="${SUPABASE_SERVICE_KEY}" \
-          --build-arg REPLICATE_API_TOKEN="${REPLICATE_API_TOKEN}" \
-          --build-arg OPENAI_API_KEY="${OPENAI_API_KEY}" \
-          --build-arg RAI_GATEWAY_BACKEND_URL="${RAI_GATEWAY_BACKEND_URL}" \
-          --build-arg SUPABASE_JWT_SECRET="${SUPABASE_JWT_SECRET}" \
-          --build-arg ZOHO_APP_PASSWORD="${ZOHO_APP_PASSWORD}" \
-          --build-arg NEW_RELIC_LICENSE_KEY="${NEW_RELIC_LICENSE_KEY}" \
-          --build-arg NEW_RELIC_APP_NAME="${NEW_RELIC_APP_NAME}" \
-          --build-arg SENTRY_DSN="${SENTRY_DSN}" \
-          --build-arg APP_ENV="${APP_ENV}" \
-          .
-        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
-
-    - name: Deploy to EC2
-      env:
-        PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-        HOST: ${{ vars.EC2_HOST }}
-        USER: ${{ vars.EC2_USER }}
-      run: |
-        echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
-        ssh -o StrictHostKeyChecking=no -i private_key ${USER}@${HOST} '
-          # Login to ECR
-          aws ecr get-login-password --region ${{ env.AWS_REGION }} | sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
-          
-          # Pull the image
-          sudo docker pull ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG_LATEST }}
-          
-          # Stop and remove the existing container
-          sudo docker stop ${{ env.CONTAINER_NAME }} || true
-          sudo docker rm ${{ env.CONTAINER_NAME }} || true
-          
-          # Run the new container
-          sudo docker run -d --name ${{ env.CONTAINER_NAME }} \
-            -p 8000:8000 \
-            --restart unless-stopped \
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG_LATEST }}
-        '
-        rm -f private_key
+      - name: Deploy to EC2
+        env:
+          PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          HOST: ${{ vars.EC2_HOST }}
+          USER: ${{ vars.EC2_USER }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+          IMAGE_TAG_LATEST: cicd-prod-latest
+          AWS_REGION: ${{ env.AWS_REGION }}
+          CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
+        run: |
+          echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
+          ssh -o StrictHostKeyChecking=no -i private_key ${USER}@${HOST} '
+            # Login to ECR
+            aws ecr get-login-password --region $AWS_REGION | sudo docker login --username AWS --password-stdin $ECR_REGISTRY
+            
+            # Pull the image
+            sudo docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
+            
+            # Echo the full image name for debugging
+            echo "Deploying image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST"
+            
+            # Stop and remove the existing container
+            sudo docker stop $CONTAINER_NAME || true
+            sudo docker rm $CONTAINER_NAME || true
+            
+            # Run the new container
+            sudo docker run -d --name $CONTAINER_NAME \
+              -p 5151:5151 \
+              --restart unless-stopped \
+              $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
+          '
+          rm -f private_key
+```
