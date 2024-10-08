@@ -16,6 +16,7 @@ def save_to_file(data, filename):
     sample_responses_folder.mkdir(parents=True, exist_ok=True)
     with open(sample_responses_folder / filename, "w") as f:
         json.dump(data, f, indent=4)
+        
 @webhook_router.post("/webhook/replicate")
 async def replicate_webhook(request: Request, background_tasks: BackgroundTasks):
     try:
@@ -46,6 +47,7 @@ async def process_replicate_webhook(data):
 
         project_id = await get_project_id_from_prediction_id(prediction_id)
         project = await get_and_update_project(project_id, lipsync_video_url)
+        # do this in the background
         return await video_post_processing(project)
     except Exception as e:
         return await handle_webhook_error(data, str(e))

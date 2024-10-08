@@ -38,6 +38,8 @@ jobs:
         IMAGE_TAG_SHA: cicd-prod-${{ github.sha }}
         IMAGE_TAG_LATEST: cicd-prod-latest
         NEW_RELIC_APP_NAME: ra-gateway-prod
+        SENTRY_DSN: ${{ vars.SENTRY_DSN }}
+        APP_ENV: prod
       run: |
         docker build \
           --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA \
@@ -51,6 +53,8 @@ jobs:
           --build-arg ZOHO_APP_PASSWORD=${{ secrets.ZOHO_APP_PASSWORD }} \
           --build-arg NEW_RELIC_LICENSE_KEY=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
           --build-arg NEW_RELIC_APP_NAME=$NEW_RELIC_APP_NAME \
+          --build-arg SENTRY_DSN=$SENTRY_DSN \
+          --build-arg APP_ENV=$APP_ENV \
           .
         docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA
