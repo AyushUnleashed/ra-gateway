@@ -555,6 +555,10 @@ async def root():
 
 #     return response
 
+@main_router.post("/api/check-beta")
+async def check_beta(user_id=Depends(verify_token)):
+    user = await get_user_from_db(user_id)
+    return {"is_beta_user": user.beta}
 
 @main_router.get("/api/users/get_credits")
 async def get_credits(user_id=Depends(verify_token)):
