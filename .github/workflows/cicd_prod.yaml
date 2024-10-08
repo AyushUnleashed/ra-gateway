@@ -31,10 +31,10 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3  # Updated to latest version
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v2  # Updated to latest version
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -50,6 +50,7 @@ jobs:
           IMAGE_TAG_SHA: cicd-prod-${{ github.sha }}
           IMAGE_TAG_LATEST: cicd-prod-latest
         run: |
+          echo "Building Docker image..."
           docker build \
             --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA \
             --build-arg SUPABASE_URL="${SUPABASE_URL}" \
@@ -66,6 +67,7 @@ jobs:
             --build-arg APP_ENV="${APP_ENV}" \
             .
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
+          echo "Pushing Docker images to ECR..."
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
 
@@ -77,7 +79,7 @@ jobs:
 
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v2  # Updated to latest version
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -102,49 +104,54 @@ jobs:
           echo "$PRIVATE_KEY" > private_key
           chmod 600 private_key
 
-          # Debug: Verify environment variables
-          echo "ECR_REGISTRY=$ECR_REGISTRY"
-          echo "ECR_REPOSITORY=$ECR_REPOSITORY"
-          echo "AWS_REGION=$AWS_REGION"
-          echo "IMAGE_TAG_LATEST=$IMAGE_TAG_LATEST"
-          echo "CONTAINER_NAME=$CONTAINER_NAME"
-          echo "HOST=$HOST"
-          echo "USER=$USER"
+          # Debug: Verify environment variables on GitHub Actions runner
+          echo "===== GitHub Actions Runner Environment Variables ====="
+          echo "ECR_REGISTRY: $ECR_REGISTRY"
+          echo "ECR_REPOSITORY: $ECR_REPOSITORY"
+          echo "AWS_REGION: $AWS_REGION"
+          echo "IMAGE_TAG_LATEST: $IMAGE_TAG_LATEST"
+          echo "CONTAINER_NAME: $CONTAINER_NAME"
+          echo "HOST: $HOST"
+          echo "USER: $USER"
+          echo "========================================================"
 
           # SSH into the EC2 instance and run deployment commands
           ssh -o StrictHostKeyChecking=no -i private_key ${USER}@${HOST} bash -s << EOF
             set -e  # Exit immediately if a command exits with a non-zero status
 
-            echo "Starting deployment on EC2 instance"
-
-            # Debug: Print received environment variables
-            echo "On EC2 - ECR_REGISTRY=${ECR_REGISTRY}"
-            echo "On EC2 - ECR_REPOSITORY=${ECR_REPOSITORY}"
-            echo "On EC2 - AWS_REGION=${AWS_REGION}"
-            echo "On EC2 - IMAGE_TAG_LATEST=${IMAGE_TAG_LATEST}"
-            echo "On EC2 - CONTAINER_NAME=${CONTAINER_NAME}"
+            echo "===== EC2 Instance Environment Variables ====="
+            echo "ECR_REGISTRY: ${ECR_REGISTRY}"
+            echo "ECR_REPOSITORY: ${ECR_REPOSITORY}"
+            echo "AWS_REGION: ${AWS_REGION}"
+            echo "IMAGE_TAG_LATEST: ${IMAGE_TAG_LATEST}"
+            echo "CONTAINER_NAME: ${CONTAINER_NAME}"
+            echo "=============================================="
 
             # Login to ECR
+            echo "Logging into Amazon ECR..."
             aws ecr get-login-password --region ${AWS_REGION} | sudo docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
             # Pull the latest image
+            echo "Pulling the latest Docker image..."
             sudo docker pull ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG_LATEST}
 
             # Echo the full image name for debugging
             echo "Deploying image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG_LATEST}"
 
             # Stop and remove the existing container if it exists
+            echo "Stopping and removing existing Docker container if it exists..."
             sudo docker stop ${CONTAINER_NAME} || true
             sudo docker rm ${CONTAINER_NAME} || true
 
             # Run the new container
+            echo "Running the new Docker container..."
             sudo docker run -d --name ${CONTAINER_NAME} \
               -p 5151:5151 \
               --restart unless-stopped \
               ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG_LATEST}
 
-            echo "Deployment completed successfully"
-          EOF
+            echo "===== Deployment Completed Successfully ====="
+EOF
 
-          # Clean up private key
+          # Clean up SSH private key
           rm -f private_key
