@@ -151,7 +151,7 @@ jobs:
               ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG_LATEST}
 
             echo "===== Deployment Completed Successfully ====="
-EOF
+          EOF
 
           # Clean up SSH private key
           rm -f private_key
