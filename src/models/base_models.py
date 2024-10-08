@@ -224,6 +224,7 @@ class User(BaseModel):
     email: str
     avatar_url: Optional[str] = None
     credits: int
+    beta:bool
 
     def serialize_for_db(self) -> Dict[str, Any]:
         data = self.model_dump()
