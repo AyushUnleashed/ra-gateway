@@ -83,6 +83,9 @@ jobs:
           # Pull the image
           sudo docker pull ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG_LATEST }}
           
+          # Echo the full image name for debugging
+          echo "Deploying image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG_LATEST }}"
+          
           # Stop and remove the existing container
           sudo docker stop ${{ env.CONTAINER_NAME }} || true
           sudo docker rm ${{ env.CONTAINER_NAME }} || true
