@@ -98,25 +98,53 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
         run: |
-          echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
-          ssh -o StrictHostKeyChecking=no -i private_key ${USER}@${HOST} '
+          # Create SSH private key file
+          echo "$PRIVATE_KEY" > private_key
+          chmod 600 private_key
+
+          # Debug: Verify environment variables
+          echo "ECR_REGISTRY=$ECR_REGISTRY"
+          echo "ECR_REPOSITORY=$ECR_REPOSITORY"
+          echo "AWS_REGION=$AWS_REGION"
+          echo "IMAGE_TAG_LATEST=$IMAGE_TAG_LATEST"
+          echo "CONTAINER_NAME=$CONTAINER_NAME"
+          echo "HOST=$HOST"
+          echo "USER=$USER"
+
+          # SSH into the EC2 instance and run deployment commands
+          ssh -o StrictHostKeyChecking=no -i private_key ${USER}@${HOST} bash -s << EOF
+            set -e  # Exit immediately if a command exits with a non-zero status
+
+            echo "Starting deployment on EC2 instance"
+
+            # Debug: Print received environment variables
+            echo "On EC2 - ECR_REGISTRY=${ECR_REGISTRY}"
+            echo "On EC2 - ECR_REPOSITORY=${ECR_REPOSITORY}"
+            echo "On EC2 - AWS_REGION=${AWS_REGION}"
+            echo "On EC2 - IMAGE_TAG_LATEST=${IMAGE_TAG_LATEST}"
+            echo "On EC2 - CONTAINER_NAME=${CONTAINER_NAME}"
+
             # Login to ECR
-            aws ecr get-login-password --region $AWS_REGION | sudo docker login --username AWS --password-stdin $ECR_REGISTRY
-            
-            # Pull the image
-            sudo docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
-            
+            aws ecr get-login-password --region ${AWS_REGION} | sudo docker login --username AWS --password-stdin ${ECR_REGISTRY}
+
+            # Pull the latest image
+            sudo docker pull ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG_LATEST}
+
             # Echo the full image name for debugging
-            echo "Deploying image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST"
-            
-            # Stop and remove the existing container
-            sudo docker stop $CONTAINER_NAME || true
-            sudo docker rm $CONTAINER_NAME || true
-            
+            echo "Deploying image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG_LATEST}"
+
+            # Stop and remove the existing container if it exists
+            sudo docker stop ${CONTAINER_NAME} || true
+            sudo docker rm ${CONTAINER_NAME} || true
+
             # Run the new container
-            sudo docker run -d --name $CONTAINER_NAME \
+            sudo docker run -d --name ${CONTAINER_NAME} \
               -p 5151:5151 \
               --restart unless-stopped \
-              $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
-          '
+              ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG_LATEST}
+
+            echo "Deployment completed successfully"
+          EOF
+
+          # Clean up private key
           rm -f private_key
