@@ -27,6 +27,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    environment: prod
 
     steps:
       - name: Check out code
@@ -119,4 +120,3 @@ jobs:
               $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
           '
           rm -f private_key
-```
