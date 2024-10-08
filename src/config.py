@@ -12,3 +12,5 @@ class Config:
     RAI_GATEWAY_BACKEND_URL = os.getenv("RAI_GATEWAY_BACKEND_URL")
     SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
     ZOHO_APP_PASSWORD = os.getenv("ZOHO_APP_PASSWORD")
+    SENTRY_DSN = os.getenv("SENTRY_DSN")
+    APP_ENV = os.getenv("APP_ENV")

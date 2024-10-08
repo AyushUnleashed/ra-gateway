@@ -529,6 +529,10 @@ async def video_post_processing(project: Project):
 async def root():
     return {"message": "API is alive"}
 
+@main_router.head("/health")
+async def root():
+    return {"message": "API is alive | Head"}
+
 
 # Polling endpoint to check project status
 
