@@ -127,6 +127,10 @@ jobs:
             echo "CONTAINER_NAME: ${CONTAINER_NAME}"
             echo "=============================================="
 
+            # Clean up Docker to free space
+            echo "Cleaning up Docker on EC2 instance..."
+            sudo docker system prune -a -f --volumes
+
             # Login to ECR
             echo "Logging into Amazon ECR..."
             aws ecr get-login-password --region ${AWS_REGION} | sudo docker login --username AWS --password-stdin ${ECR_REGISTRY}
