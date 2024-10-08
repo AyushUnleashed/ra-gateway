@@ -1,0 +1,98 @@
+name: Deploy Docker Image to EC2 for reelsai.pro
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: reelsai-pro
+  CONTAINER_NAME: reelsai-pro
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    environment: prod
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Deploy to EC2
+        env:
+          PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          HOST: ${{ vars.EC2_HOST }}
+          USER: ${{ vars.EC2_USER }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+          IMAGE_TAG_LATEST: cicd-prod-latest
+          AWS_REGION: ${{ env.AWS_REGION }}
+          CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
+        run: |
+          # Create SSH private key file
+          echo "$PRIVATE_KEY" > private_key
+          chmod 600 private_key
+
+          # Debug: Verify environment variables on GitHub Actions runner
+          echo "===== GitHub Actions Runner Environment Variables ====="
+          echo "ECR_REGISTRY: $ECR_REGISTRY"
+          echo "ECR_REPOSITORY: $ECR_REPOSITORY"
+          echo "AWS_REGION: $AWS_REGION"
+          echo "IMAGE_TAG_LATEST: $IMAGE_TAG_LATEST"
+          echo "CONTAINER_NAME: $CONTAINER_NAME"
+          echo "HOST: $HOST"
+          echo "USER: $USER"
+          echo "========================================================"
+
+          # SSH into the EC2 instance and run deployment commands
+          ssh -o StrictHostKeyChecking=no -i private_key ${USER}@${HOST} bash -s <<- EOF
+            set -e  # Exit immediately if a command exits with a non-zero status
+
+            echo "===== EC2 Instance Environment Variables ====="
+            echo "ECR_REGISTRY: ${ECR_REGISTRY}"
+            echo "ECR_REPOSITORY: ${ECR_REPOSITORY}"
+            echo "AWS_REGION: ${AWS_REGION}"
+            echo "IMAGE_TAG_LATEST: ${IMAGE_TAG_LATEST}"
+            echo "CONTAINER_NAME: ${CONTAINER_NAME}"
+            echo "=============================================="
+
+            # Clean up Docker to free space
+            echo "Cleaning up Docker on EC2 instance..."
+            sudo docker system prune -a -f --volumes
+
+            # Login to ECR
+            echo "Logging into Amazon ECR..."
+            aws ecr get-login-password --region ${AWS_REGION} | sudo docker login --username AWS --password-stdin ${ECR_REGISTRY}
+
+            # Pull the latest image
+            echo "Pulling the latest Docker image..."
+            sudo docker pull ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG_LATEST}
+
+            # Echo the full image name for debugging
+            echo "Deploying image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG_LATEST}"
+
+            # Stop and remove the existing container if it exists
+            echo "Stopping and removing existing Docker container if it exists..."
+            sudo docker stop ${CONTAINER_NAME} || true
+            sudo docker rm ${CONTAINER_NAME} || true
+
+            # Run the new container
+            echo "Running the new Docker container..."
+            sudo docker run -d --name ${CONTAINER_NAME} \
+              -p 5151:5151 \
+              --restart unless-stopped \
+              ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG_LATEST}
+
+            echo "===== Deployment Completed Successfully ====="
+          EOF
+
+          # Clean up SSH private key
+          rm -f private_key
