@@ -18,7 +18,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip install python-multipart newrelic
+RUN pip install python-multipart newrelic rich
 # Set build arguments
 ARG SUPABASE_URL
 ARG SUPABASE_KEY

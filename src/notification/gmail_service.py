@@ -4,6 +4,7 @@ from email.header import Header
 from email.utils import formataddr
 from src.config import Config
 from src.utils.constants import Constants
+from src.utils.logger import logger
 
 async def send_email(subject, body, sender, sender_title, recipients, server='smtp.zoho.in', port=465):
     password = Config.ZOHO_APP_PASSWORD
@@ -28,12 +29,13 @@ async def send_email(subject, body, sender, sender_title, recipients, server='sm
     msg['To'] = ', '.join(recipients)
 
     try:
+        logger.info("Connecting to SMTP server...")
         server = smtplib.SMTP_SSL(host=server, port=port)
         server.login(sender, password)
         server.send_message(msg)
-        print("Email sent successfully!")
+        logger.info("Email sent successfully!")
     except Exception as e:
-        print(f"Failed to send email: {e}")
+        logger.error(f"Failed to send email: {e}")
 
 async def send_video_ready_alert(user_email):
     recipients = [user_email]
@@ -51,6 +53,7 @@ async def send_video_ready_alert(user_email):
     </html>
     """
     sender_title = "Ayush - ReelsAI"
+    logger.info("Preparing to send video ready alert email...")
     await send_email(subject, body, Constants.SENDER_EMAIL, sender_title, recipients)
 
 if __name__ == "__main__":

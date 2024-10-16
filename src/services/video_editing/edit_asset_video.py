@@ -7,6 +7,7 @@ from src.models.base_models import AspectRatio, AssetType
 import os
 import numpy as np
 from PIL import Image, ImageDraw
+from src.utils.logger import logger
 
 # def create_rounded_corner_mask(size, radius):
 #     mask = Image.new('L', size, 255)  # Start with a white (fully opaque) background
@@ -21,16 +22,18 @@ from PIL import Image, ImageDraw
 def save_intermediate_clip(clip, filename, fps=25):
     output_path = os.path.join(Constants.LOCAL_STORAGE_BASE_PATH, "debug", filename)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    logger.debug(f"Saving intermediate clip to {output_path}")
     clip.write_videofile(output_path, codec="libx264", fps=fps)
 
-
-async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_ratio: AspectRatio, asset_edited_video_path:str) -> str:
+async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_ratio: AspectRatio, asset_edited_video_path: str) -> str:
     try:
+        logger.info("Starting video editing process")
         if aspect_ratio == AspectRatio.SQUARE.value:
             width, height = 1080, 1080
         elif aspect_ratio == AspectRatio.NINE_SIXTEEN.value:
             width, height = 1080, 1920
         else:
+            logger.error("Unsupported aspect ratio")
             raise ValueError("Unsupported aspect ratio")
 
         asset_duration = final_video_length / len(assets)
@@ -40,6 +43,7 @@ async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_
         clips = []
         for index, asset in enumerate(assets):
             try:
+                logger.debug(f"Processing asset {index}: {asset.local_path}")
                 if asset.type == AssetType.VIDEO:
                     clip = VideoFileClip(asset.local_path).without_audio()
                     save_intermediate_clip(clip, f"original_video_{index}.mp4")
@@ -52,7 +56,7 @@ async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_
                     clip = ImageClip(asset.local_path).set_duration(asset_duration)
                     save_intermediate_clip(clip, f"original_image_{index}.mp4")
                 else:
-                    print(f"Warning: Unsupported asset type: {asset.type}. Skipping this asset.")
+                    logger.warning(f"Unsupported asset type: {asset.type}. Skipping this asset.")
                     continue
 
                 clip_aspect_ratio = clip.w / clip.h
@@ -75,16 +79,18 @@ async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_
                 
                 clips.append(composite_clip)
             except Exception as e:
-                print(f"Error processing asset {index}: {str(e)}")
+                logger.error(f"Error processing asset {index}: {str(e)}")
                 import traceback
-                print(traceback.format_exc())
+                logger.debug(traceback.format_exc())
                 continue
 
         if not clips:
+            logger.error("No valid clips to concatenate")
             raise ValueError("No valid clips to concatenate")
 
         final_clip = concatenate_videoclips(clips, method="compose")
         os.makedirs(os.path.dirname(asset_edited_video_path), exist_ok=True)
+        logger.info(f"Writing final video to {asset_edited_video_path}")
         final_clip.write_videofile(asset_edited_video_path, codec="libx264", fps=25)
 
         final_clip.close()
@@ -92,11 +98,12 @@ async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_
             clip.close()
         background.close()
 
+        logger.info("Video editing process completed successfully")
         return asset_edited_video_path
     except Exception as e:
-        print(f"An error occurred while editing the asset video: {str(e)}")
+        logger.error(f"An error occurred while editing the asset video: {str(e)}")
         import traceback
-        print(traceback.format_exc())
+        logger.debug(traceback.format_exc())
         raise
 
 if __name__ == "__main__":
@@ -130,5 +137,6 @@ if __name__ == "__main__":
     aspect_ratio = AspectRatio.SQUARE
 
     # Run the edit_asset_video function
+    logger.info("Running the edit_asset_video function")
     edited_video_path = asyncio.run(edit_asset_video(assets, final_video_length, aspect_ratio))
-    print(f"Edited video saved at: {edited_video_path}")
+    logger.info(f"Edited video saved at: {edited_video_path}")

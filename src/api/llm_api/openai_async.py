@@ -4,6 +4,7 @@ from src.api.llm_api.prompts import GENERATE_SCRIPT_PROMPT
 import aiohttp
 import asyncio
 import json
+from src.utils.logger import logger
 
 MODEL_GPT_35_TURBO = "gpt-3.5-turbo"
 MODEL_NAME = MODEL_GPT_35_TURBO
@@ -44,7 +45,7 @@ async def fetch_openai_response(user_prompt: str):
         reset_chat_history()
         global chat_history
         chat_history.append({"role": "user", "content": user_prompt})
-        print("Waiting for OpenAI response...")
+        logger.info("Waiting for OpenAI response...")
 
         headers = {
             "Content-Type": "application/json",
@@ -62,26 +63,26 @@ async def fetch_openai_response(user_prompt: str):
             async with session.post("https://api.openai.com/v1/chat/completions", headers=headers, data=data) as response:
                 if response.status == 200:
                     openai_response = await response.json()
-                    print(openai_response)
+                    logger.info(openai_response)
                     reply = openai_response['choices'][0]['message']['content']
                     completion_tokens = openai_response['usage']['completion_tokens']
                     prompt_tokens = openai_response['usage']['prompt_tokens']
                     total_tokens = openai_response['usage']['total_tokens']
 
-                    print("OpenAI Paid API reply:", reply)
-                    print("Completion tokens:", completion_tokens)
-                    print("Prompt tokens:", prompt_tokens)
-                    print("Total tokens used:", total_tokens)
+                    logger.info("OpenAI Paid API reply: %s", reply)
+                    logger.info("Completion tokens: %d", completion_tokens)
+                    logger.info("Prompt tokens: %d", prompt_tokens)
+                    logger.info("Total tokens used: %d", total_tokens)
 
                     chat_history.append({"role": "assistant", "content": reply})
-                    print("Response received.")
+                    logger.info("Response received.")
                     return reply
                 else:
-                    print("Error fetching response:", await response.text())
+                    logger.error("Error fetching response: %s", await response.text())
                     return None
 
     except Exception as e:
-        print("Exception occurred while fetching response from OpenAI:", e)
+        logger.exception("Exception occurred while fetching response from OpenAI: %s", e)
         return None
 
 async def fetch_openai_response_with_system_prompt(user_prompt: str, system_prompt: str):
@@ -90,7 +91,7 @@ async def fetch_openai_response_with_system_prompt(user_prompt: str, system_prom
         global chat_history
         chat_history = [{"role": "system", "content": system_prompt}]
         chat_history.append({"role": "user", "content": user_prompt})
-        print("Waiting for OpenAI response...")
+        logger.info("Waiting for OpenAI response...")
 
         headers = {
             "Content-Type": "application/json",
@@ -108,26 +109,26 @@ async def fetch_openai_response_with_system_prompt(user_prompt: str, system_prom
             async with session.post("https://api.openai.com/v1/chat/completions", headers=headers, data=data) as response:
                 if response.status == 200:
                     openai_response = await response.json()
-                    print(openai_response)
+                    logger.info(openai_response)
                     reply = openai_response['choices'][0]['message']['content']
                     completion_tokens = openai_response['usage']['completion_tokens']
                     prompt_tokens = openai_response['usage']['prompt_tokens']
                     total_tokens = openai_response['usage']['total_tokens']
 
-                    print("OpenAI Paid API reply:", reply)
-                    print("Completion tokens:", completion_tokens)
-                    print("Prompt tokens:", prompt_tokens)
-                    print("Total tokens used:", total_tokens)
+                    logger.info("OpenAI Paid API reply: %s", reply)
+                    logger.info("Completion tokens: %d", completion_tokens)
+                    logger.info("Prompt tokens: %d", prompt_tokens)
+                    logger.info("Total tokens used: %d", total_tokens)
 
                     chat_history.append({"role": "assistant", "content": reply})
-                    print("Response received.")
+                    logger.info("Response received.")
                     return reply
                 else:
-                    print("Error fetching response:", await response.text())
+                    logger.error("Error fetching response: %s", await response.text())
                     return None
 
     except Exception as e:
-        print("Exception occurred while fetching response from OpenAI:", e)
+        logger.exception("Exception occurred while fetching response from OpenAI: %s", e)
         return None
 
 if __name__ == "__main__":

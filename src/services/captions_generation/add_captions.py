@@ -6,6 +6,7 @@ import os
 import pickle
 from moviepy.editor import VideoFileClip, AudioFileClip, CompositeVideoClip
 from PIL import Image, ImageDraw, ImageFont
+from src.utils.logger import logger
 
 roboto_font_path = "src/fonts/Roboto-Black.ttf"
 
@@ -17,6 +18,7 @@ class CaptionType:
         self.thickness = thickness
         self.line_type = line_type
         self.outline_thickness = outline_thickness
+        logger.debug(f"Initialized CaptionType: {self.name}")
 
     def render(self, frame: np.ndarray, text: str, position: Tuple[int, int]) -> np.ndarray:
         raise NotImplementedError("Subclasses must implement the render method")
@@ -33,8 +35,10 @@ class HighlightedWordsCaption(CaptionType):
         self.default_color = default_color
         self.highlight_color = highlight_color
         self.outline_color = outline_color
+        logger.debug("Initialized HighlightedWordsCaption")
 
     def render(self, frame: np.ndarray, words: List[str], current_word_index: int, position: Tuple[int, int]) -> np.ndarray:
+        logger.debug("Rendering HighlightedWordsCaption")
         frame_height, frame_width = frame.shape[:2]
         x, y = position
         max_width = int(frame_width * 0.9)  # Use 90% of frame width
@@ -100,8 +104,10 @@ class BoxedHighlightCaption(CaptionType):
         self.background_color = background_color
         self.background_padding = background_padding
         self.max_lines = max_lines  # Store the max_lines parameter
+        logger.debug("Initialized BoxedHighlightCaption")
 
     def render(self, frame: np.ndarray, words: List[str], current_word_index: int, position: Tuple[int, int]) -> np.ndarray:
+        logger.debug("Rendering BoxedHighlightCaption")
         frame_height, frame_width = frame.shape[:2]
         x, y = position
         max_width = int(frame_width * 0.9)  # Use 90% of frame width
@@ -185,11 +191,11 @@ def transcribe_video(video_path: str, model: whisper.Whisper) -> List[List]:
     cache_file = f"{video_path}_transcription_cache.pkl"
     
     if os.path.exists(cache_file):
-        print("Loading transcription from cache")
+        logger.info("Loading transcription from cache")
         with open(cache_file, 'rb') as f:
             return pickle.load(f)
     
-    print('Transcribing video')
+    logger.info('Transcribing video')
     result = model.transcribe(video_path)
 
     text_array = []
@@ -202,7 +208,7 @@ def transcribe_video(video_path: str, model: whisper.Whisper) -> List[List]:
             text_array.append([word, start_time, end_time])
             start_time += (end_time - start_time) / len(words)
 
-    print('Transcription complete')
+    logger.info('Transcription complete')
     
     # Cache the transcription
     with open(cache_file, 'wb') as f:
@@ -211,9 +217,11 @@ def transcribe_video(video_path: str, model: whisper.Whisper) -> List[List]:
     return text_array
 
 def process_video_for_captions(input_video: str, output_video: str, caption_type: CaptionType, font_path: str, font_size: int = 32):
+    logger.info(f"Loading Whisper model")
     model = whisper.load_model("base")
 
     # Load the video using moviepy
+    logger.info(f"Loading video: {input_video}")
     video = VideoFileClip(input_video)
     
     # Extract audio from the input video
@@ -231,7 +239,7 @@ def process_video_for_captions(input_video: str, output_video: str, caption_type
     # Transcribe video (now with caching)
     text_array = transcribe_video(input_video, model)
 
-    print("Processing video...")
+    logger.info("Processing video...")
     frame_number = 0
     word_index = 0
     sentence_index = 0
@@ -273,7 +281,7 @@ def process_video_for_captions(input_video: str, output_video: str, caption_type
         frame_number += 1
 
         if frame_number % 100 == 0:
-            print(f"Processed {frame_number} frames")
+            logger.info(f"Processed {frame_number} frames")
 
     cap.release()
     out.release()
@@ -294,7 +302,7 @@ def process_video_for_captions(input_video: str, output_video: str, caption_type
     # Clean up temporary files
     os.remove(temp_output)
 
-    print(f"Video processing complete. Output saved to {output_video}")
+    logger.info(f"Video processing complete. Output saved to {output_video}")
 
 if __name__ == "__main__":
     input_video = "src/temp_storage/a34b03d2-7190-45cc-b2e7-01e347b18675/working/final_video.mp4"
