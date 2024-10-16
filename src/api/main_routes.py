@@ -34,7 +34,7 @@ from src.supabase_tools.handle_project_tb_updates import add_project_to_db, get_
 from src.supabase_tools.handle_bucket_updates import upload_file_to_projects
 from src.config import Config
 
-
+from src.utils.logger import logger
 from pydantic import BaseModel
 
 class CreateProductRequest(BaseModel):
@@ -71,7 +71,7 @@ def verify_token(authorization: str = Header(...)) -> UUID:
         payload = jwt.decode(token, key=Config.SUPABASE_JWT_SECRET, algorithms=["HS256"],options={"verify_aud": False})
         
         user_id = payload.get("sub")
-        print("User ID: ", user_id)
+        logger.info(f"User ID: {user_id}")
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token: User ID not found")
         
@@ -92,9 +92,8 @@ async def create_product(
     user_id: UUID = Depends(verify_token)
 ):
     try:
-        # Log the received data (replace with your actual logging mechanism)
-        print(f"Received request to create product: {request}")
-        print(f"Authenticated user ID: {user_id}")
+        logger.info(f"Received request to create product: {request}")
+        logger.info(f"Authenticated user ID: {user_id}")
         product_id = uuid4()
         logo_url = None
         # if request.logo:
@@ -115,10 +114,8 @@ async def create_product(
         await add_product_to_db(product)
 
         return {"product_id": product_id}
-        #return {"message": "Product created successfully", "user_id": str(user_id)}
     except Exception as e:
-        # Log the error (replace with your actual error logging mechanism)
-        print(f"Error creating product: {str(e)}")
+        logger.error(f"Error creating product: {str(e)}")
         raise HTTPException(status_code=500, detail=f"An error occurred while creating the product: {str(e)}")
 
 
@@ -164,6 +161,7 @@ async def get_all_project_dtos(user_id: UUID = Depends(verify_token)) -> List[Pr
         projects = await get_all_projects_from_db(user_id)
         return [project_to_dto(project) for project in projects]
     except Exception as e:
+        logger.error(f"An error occurred while converting projects to DTOs: {e}")
         raise Exception(f"An error occurred while converting projects to DTOs: {e}")
     
 
@@ -174,6 +172,7 @@ async def get_project(project_id: UUID):
         project_dto = project_to_dto(project)
         return project_dto
     except Exception as e:
+        logger.error(f"An error occurred while fetching the project: {e}")
         raise Exception(f"An error occurred while fetching the project: {e}")
     
 
@@ -208,13 +207,13 @@ async def create_project(request: CreateProjectRequest,user_id: UUID = Depends(v
         )
 
         projects_in_memory[project_id] = project
-        print(projects_in_memory)
+        logger.info(f"Project created in memory: {project}")
 
         return {"project_id": project_id}
     except HTTPException as e:
         raise e
     except Exception as e:
-        print(f"An error occurred: {e}")
+        logger.error(f"An error occurred: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -223,15 +222,15 @@ async def create_project(request: CreateProjectRequest,user_id: UUID = Depends(v
 @main_router.post("/api/projects/{project_id}/video-configuration")
 async def configure_video(project_id: UUID, config: VideoConfiguration):
     if project_id not in projects_in_memory:
-        print("Project not found")
-        #print(projects_in_memory[project_id])
-        print(projects_in_memory)
+        logger.warning(f"Project not found: {project_id}")
         raise HTTPException(status_code=404, detail="Project not found")
 
     project = projects_in_memory[project_id]
     project.video_configuration = config
     project.status = ProjectStatus.DRAFT
     project.updated_at = datetime.now()
+
+    logger.info(f"Video configuration added to project {project_id}: {config}")
 
     return {"config_added": True, "message": "Video configuration added successfully"}
 
@@ -240,6 +239,7 @@ async def configure_video(project_id: UUID, config: VideoConfiguration):
 @main_router.post("/api/projects/{project_id}/generate-script")
 async def generate_script(project_id: UUID):
     if project_id not in projects_in_memory:
+        logger.warning(f"Project not found: {project_id}")
         raise HTTPException(status_code=404, detail="Project not found")
 
     project = projects_in_memory[project_id]
@@ -250,11 +250,14 @@ async def generate_script(project_id: UUID):
     project.script = script_object
     project.updated_at = datetime.now()
 
+    logger.info(f"Script generated for project {project_id}: {script_object}")
+
     return {"script_generated": True, "message": "Script generated successfully", "script": script_object.dict()}
 
 @main_router.get("/api/projects/{project_id}/scripts")
 async def get_script(project_id: UUID):
     if project_id not in projects_in_memory:
+        logger.warning(f"Project not found: {project_id}")
         raise HTTPException(status_code=404, detail="Project not found")
 
     cache = False
@@ -269,19 +272,23 @@ async def get_script(project_id: UUID):
         return [dummy_script]
 
     if not project.script:
+        logger.warning(f"Script not found for project {project_id}")
         raise HTTPException(status_code=404, detail="Script not found")
+
+    logger.info(f"Script retrieved for project {project_id}")
 
     return [project.script.dict()]
 
 @main_router.put("/api/projects/{project_id}/script")
 async def finalize_script(project_id: UUID, body: dict):
     if project_id not in projects_in_memory:
+        logger.warning(f"Project not found: {project_id}")
         raise HTTPException(status_code=404, detail="Project not found")
 
     project = projects_in_memory[project_id]
 
     project.final_script = body['script']
-    print(f"\n\n\n {project.final_script} \n\n\n")
+    logger.info(f"Final script set for project {project_id}: {project.final_script}")
     project.updated_at = datetime.now()
 
     return {"final_script_set": True, "message": "Script has been set as final script for the project"}
@@ -295,6 +302,8 @@ async def get_actors_and_voices():
     actors = get_actors_from_db()
     voices = get_voices_from_db()
 
+    logger.info("Actors and voices retrieved")
+
     return {"actors": actors, "voices": voices}
 
 
@@ -306,6 +315,7 @@ class SelectActorVoiceRequest(BaseModel):
 @main_router.post("/api/projects/{project_id}/select-actor-voice")
 async def select_actor_voice(project_id: UUID, request: SelectActorVoiceRequest):
     if project_id not in projects_in_memory:
+        logger.warning(f"Project not found: {project_id}")
         raise HTTPException(status_code=404, detail="Project not found")
 
     project = projects_in_memory[project_id]
@@ -334,6 +344,8 @@ async def select_actor_voice(project_id: UUID, request: SelectActorVoiceRequest)
     project.voice_base = voice_base
     project.updated_at = datetime.now()
 
+    logger.info(f"Actor and voice selected for project {project_id}: Actor ID {request.actor_id}, Voice ID {request.voice_id}")
+
     return {"selection_successful": True, "message": "Actor and voice selected successfully"}
 
 
@@ -341,6 +353,7 @@ async def select_actor_voice(project_id: UUID, request: SelectActorVoiceRequest)
 @main_router.post("/api/projects/{project_id}/assets")
 async def upload_asset(project_id: UUID,file: UploadFile = File(...)):
     if project_id not in projects_in_memory:
+        logger.warning(f"Project not found: {project_id}")
         raise HTTPException(status_code=404, detail="Project not found")
 
     project = projects_in_memory[project_id]
@@ -352,6 +365,8 @@ async def upload_asset(project_id: UUID,file: UploadFile = File(...)):
     project.assets.append(asset)
     project.updated_at = datetime.now()
 
+    logger.info(f"Asset uploaded for project {project_id}: {file.filename}")
+
     return {"asset_uploaded": True, "message": "Asset uploaded successfully", "asset_id": str(len(project.assets) - 1)}
 
 
@@ -360,6 +375,8 @@ async def upload_asset(project_id: UUID,file: UploadFile = File(...)):
 async def get_video_layouts():
     # Dummy function to get video layouts
     layouts = get_layouts_from_db()
+
+    logger.info("Video layouts retrieved")
 
     return {"layouts": layouts}
 
@@ -370,6 +387,7 @@ class SelectLayoutRequest(BaseModel):
 async def get_video_layout_base(layout_id: UUID):
     video_layout = get_layout_from_db(layout_id)
     if not video_layout:
+        logger.warning(f"Layout not found: {layout_id}")
         raise HTTPException(status_code=404, detail="Layout not found")
 
     video_layout_base = VideoLayoutBase(
@@ -378,12 +396,15 @@ async def get_video_layout_base(layout_id: UUID):
         thumbnail_url=video_layout.thumbnail_url
     )
 
+    logger.info(f"Video layout base retrieved: {layout_id}")
+
     return video_layout_base
 
 # select layout
 @main_router.post("/api/projects/{project_id}/select-layout")
 async def select_layout(project_id: UUID,selectLayoutRequest: SelectLayoutRequest):
     if project_id not in projects_in_memory:
+        logger.warning(f"Project not found: {project_id}")
         raise HTTPException(status_code=404, detail="Project not found")
 
     project = projects_in_memory[project_id]
@@ -393,6 +414,8 @@ async def select_layout(project_id: UUID,selectLayoutRequest: SelectLayoutReques
     project.video_layout_id = selectLayoutRequest.layout_id
     project.video_layout_base = video_layout_base
     project.updated_at = datetime.now()
+
+    logger.info(f"Layout selected for project {project_id}: {selectLayoutRequest.layout_id}")
 
     return {"layout_selected": True, "message": "Layout selected successfully"}
 
@@ -404,6 +427,7 @@ from fastapi import BackgroundTasks
 async def generate_final_video(project_id: UUID, background_tasks: BackgroundTasks, user_id: UUID = Depends(verify_token)):
     try:
         if project_id not in projects_in_memory:
+            logger.warning(f"Project not found: {project_id}")
             raise HTTPException(status_code=404, detail="Project not found")
 
         project = projects_in_memory[project_id]
@@ -417,14 +441,16 @@ async def generate_final_video(project_id: UUID, background_tasks: BackgroundTas
 
             # add project to db with status processing with user_id
             await add_project_to_db(project)
+            logger.info(f"Video generation process started for project {project_id}")
             return {"generation_started": True, "message": "Video generation process started"}
         else:
+            logger.warning(f"No credits available for user {user_id}")
             raise HTTPException(status_code=403, detail="No credits available")
     except HTTPException as e:
         raise e
     except Exception as e:
         error_message = str(e)
-        print(f"An error occurred: {error_message}")
+        logger.error(f"An error occurred: {error_message}")
         raise HTTPException(status_code=500, detail=error_message)
 
 async def process_video(project_id: UUID):
@@ -448,9 +474,11 @@ async def process_video(project_id: UUID):
         # Update project in database
         await update_project_in_db(project)
 
+        logger.info(f"Video processing completed for project {project_id}")
+
     except Exception as e:
         error_message = str(e)
-        print(f"An error occurred during video processing: {error_message}")
+        logger.error(f"An error occurred during video processing: {error_message}")
         project.status = ProjectStatus.FAILED
         await update_project_in_db(project)
         raise HTTPException(status_code=500, detail=error_message)
@@ -514,12 +542,12 @@ async def video_post_processing(project: Project):
         project.updated_at = datetime.now()
 
         await update_project_in_db(project)
-        # await send_video_ready_alert(user_email)
+        logger.info(f"Video post-processing completed for project {project.id}")
         return project
 
     except Exception as e:
         error_message = str(e)
-        print(f"An error occurred during video post-processing: {error_message}")
+        logger.error(f"An error occurred during video post-processing: {error_message}")
         project.status = ProjectStatus.FAILED
         await update_project_in_db(project)
         raise HTTPException(status_code=500, detail=error_message)
