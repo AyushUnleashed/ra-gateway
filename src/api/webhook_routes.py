@@ -5,6 +5,7 @@ from src.models.base_models import Project, ProjectStatus
 from src.models.shared_state import projects_in_memory
 from src.api.main_routes import video_post_processing
 webhook_router = APIRouter()
+from src.notification.async_slack_bot import RA_SLACK_BOT
 from src.supabase_tools.handle_project_tb_updates import get_project_from_db, get_project_id_from_prediction_id, update_project_in_db 
 from src.utils.logger import logger
 
@@ -69,8 +70,7 @@ async def get_and_update_project(project_id, lipsync_video_url):
     logger.info(f"Project {project_id} updated in memory.")
     return project
 
-async def update_project_status(data, status):
-    prediction_id = data.get("id")
+async def update_project_status(prediction_id, status):
     if prediction_id:
         project_id = await get_project_id_from_prediction_id(prediction_id)
         if project_id in projects_in_memory:
@@ -81,5 +81,7 @@ async def update_project_status(data, status):
 
 async def handle_webhook_error(data, error_message):
     logger.error(f"An error occurred: {error_message}")
-    await update_project_status(data, ProjectStatus.ACTOR_GENERATION_FAILED)
+    prediction_id = data.get("id")
+    await update_project_status(prediction_id, ProjectStatus.ACTOR_GENERATION_FAILED)
+    await RA_SLACK_BOT.send_message(f"An error occurred during video processing: {error_message} for {prediction_id}")
     raise HTTPException(status_code=500, detail=error_message)

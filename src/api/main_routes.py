@@ -5,6 +5,7 @@ from typing import List, Optional
 from datetime import datetime
 from fastapi import APIRouter
 import os
+from src.notification.async_slack_bot import RA_SLACK_BOT
 from src.notification.gmail_service import send_video_ready_alert
 from src.services.captions_generation.add_captions import BoxedHighlightCaption, roboto_font_path, process_video_for_captions
 from src.services.lipsync_generation.muse_talk_lipsync import create_muste_talk_prediction
@@ -543,12 +544,14 @@ async def video_post_processing(project: Project):
 
         await update_project_in_db(project)
         logger.info(f"Video post-processing completed for project {project.id}")
+        await RA_SLACK_BOT.send_message(f"Video processing completed for project {project.id} \n final_video_url: {final_video_url}")
         return project
 
     except Exception as e:
         error_message = str(e)
         logger.error(f"An error occurred during video post-processing: {error_message}")
         project.status = ProjectStatus.FAILED
+        await RA_SLACK_BOT.send_message(f"An error occurred during video post-processing: {error_message} for project {project.id}")
         await update_project_in_db(project)
         raise HTTPException(status_code=500, detail=error_message)
 
