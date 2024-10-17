@@ -22,6 +22,7 @@ env:
   NEW_RELIC_APP_NAME: ra-gateway-prod
   SENTRY_DSN: ${{ vars.SENTRY_DSN }}
   APP_ENV: prod
+  SLACKBOT_RA_WEBHOOK_URL: ${{ vars.SLACKBOT_RA_WEBHOOK_URL }}
 
 jobs:
   build:
@@ -65,6 +66,7 @@ jobs:
             --build-arg NEW_RELIC_APP_NAME="${NEW_RELIC_APP_NAME}" \
             --build-arg SENTRY_DSN="${SENTRY_DSN}" \
             --build-arg APP_ENV="${APP_ENV}" \
+            --build-arg SLACKBOT_RA_WEBHOOK_URL="${SLACKBOT_RA_WEBHOOK_URL}" \
             .
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
           echo "Pushing Docker images to ECR..."
