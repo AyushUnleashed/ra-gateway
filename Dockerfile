@@ -18,6 +18,9 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+
+RUN apt-get update && apt-get install -y ffmpeg
+
 RUN pip install python-multipart newrelic rich
 # Set build arguments
 ARG SUPABASE_URL
