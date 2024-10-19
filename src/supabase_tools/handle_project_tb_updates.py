@@ -30,7 +30,7 @@ async def get_project_from_db(project_id: UUID) -> Project:
 
 async def get_all_projects_from_db(user_id: UUID) -> List[Project]:
     try:
-        response = SUPABASE_CLIENT.table(TableNames.PROJECTS).select("*").eq("user_id", str(user_id)).execute()
+        response = SUPABASE_CLIENT.table(TableNames.PROJECTS).select("*").eq("user_id", str(user_id)).order("created_at", desc=True).execute()
         projects_data = response.data
         if not projects_data:
             raise Exception("No projects found for the given user")
@@ -76,6 +76,8 @@ def project_to_dto(project: Project) -> ProjectDTO:
         user_id=project.user_id,
         product_id=project.product_id,
         status=project.status,
+        video_configuration=project.video_configuration,
+        final_script=project.final_script,
         created_at=project.created_at,
         updated_at=project.updated_at,
         final_video_url=project.final_video_url

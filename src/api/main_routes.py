@@ -300,8 +300,8 @@ async def finalize_script(project_id: UUID, body: dict):
 @main_router.get("/api/actors-and-voices")
 async def get_actors_and_voices():
     # Dummy functions to get actors and voices
-    actors = get_actors_from_db()
-    voices = get_voices_from_db()
+    actors = [actor for actor in get_actors_from_db() if actor.is_visible]
+    voices = [voice for voice in get_voices_from_db() if voice.is_visible]
 
     logger.info("Actors and voices retrieved")
 
@@ -489,24 +489,29 @@ async def process_video(project_id: UUID):
     # project.lipsync_video_url = lipsync_video_url
     # await asyncio.sleep(10)
 
-
 async def video_post_processing(project: Project):
     try:
+        logger.info(f"Starting video post-processing for project {project.id}")
+
         # providing already fetched project with lipsync video url
 
         # save lipsync video locally
+        logger.info(f"Downloading lipsync video for project {project.id}")
         lipsync_video_local_path = get_local_path(project.id, "working", f"lipsync_video_{project.id}.mp4")
         lipsync_video_local_path = await download_video(project.lipsync_video_url, output_path=lipsync_video_local_path)
 
         project.status = ProjectStatus.ACTOR_GENERATION_COMPLETED
+        logger.info(f"Lipsync video downloaded and status updated for project {project.id}")
 
         final_video_local_path = get_local_path(project.id, "working", "final_video.mp4")
 
         # fetch video layout base from db
+        logger.info(f"Fetching video layout base for project {project.id}")
         video_layout_base = await get_video_layout_base(project.video_layout_id)
         project.video_layout_base = video_layout_base
 
         # Edit final video
+        logger.info(f"Editing final video for project {project.id}")
         final_video_local_path = await edit_final_video(
             lipsync_video_local_path,
             final_video_local_path,
@@ -515,6 +520,8 @@ async def video_post_processing(project: Project):
             project.final_video_duration,
             project.id
         )
+
+        logger.info(f"Final video edited for project {project.id}")
 
         caption_type = BoxedHighlightCaption(
             font_path=roboto_font_path,
@@ -528,9 +535,11 @@ async def video_post_processing(project: Project):
         )
 
         final_video_with_captions_local_path = get_local_path(project.id, "working", "final_video_with_captions.mp4")
+        logger.info(f"Adding captions to final video for project {project.id}")
         process_video_for_captions(final_video_local_path, final_video_with_captions_local_path, caption_type, font_path=roboto_font_path, font_size=32)
 
         # Upload final video to Supabase
+        logger.info(f"Uploading final video to Supabase for project {project.id}")
         final_video_url = upload_file_to_projects(
             local_path=final_video_with_captions_local_path,
             project_id=project.id,
@@ -598,16 +607,23 @@ async def get_credits(user_id=Depends(verify_token)):
 
 @main_router.post("/api/users/reduce_credits")
 async def reduce_credit(user_id: UUID=Depends(verify_token)):
+    logger.info(f"Attempting to reduce credits for user {user_id}")
+    
     # Retrieve the existing user from the database
     user = await get_user_from_db(user_id)
+    logger.info(f"Retrieved user {user_id} with {user.credits} credits")
 
     reduced_credits = False
     if user.credits >= 1:
         # Update the user's credits
         user.credits -= 1
         reduced_credits = True
-    
+        logger.info(f"Reduced credits for user {user_id}. New credits: {user.credits}")
+    else:
+        logger.warning(f"User {user_id} does not have enough credits to reduce")
+
     # Call the relevant function to update the user in the database
-    _,updated_credits = await update_user_in_db(user)
+    _, updated_credits = await update_user_in_db(user)
+    logger.info(f"Updated user {user_id} in the database with {updated_credits} credits")
     
     return {"reduced_credits": reduced_credits, "updated_credits": updated_credits}

@@ -27,7 +27,7 @@ def save_intermediate_clip(clip, filename, fps=25):
 
 async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_ratio: AspectRatio, asset_edited_video_path: str) -> str:
     try:
-        logger.info("Starting video editing process")
+        logger.info("Starting asset editing process")
         if aspect_ratio == AspectRatio.SQUARE.value:
             width, height = 1080, 1080
         elif aspect_ratio == AspectRatio.NINE_SIXTEEN.value:
@@ -46,15 +46,13 @@ async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_
                 logger.debug(f"Processing asset {index}: {asset.local_path}")
                 if asset.type == AssetType.VIDEO:
                     clip = VideoFileClip(asset.local_path).without_audio()
-                    save_intermediate_clip(clip, f"original_video_{index}.mp4")
                     if clip.duration < asset_duration:
                         clip = clip.loop(duration=asset_duration)
                     else:
                         clip = clip.subclip(0, asset_duration)
-                    save_intermediate_clip(clip, f"duration_adjusted_video_{index}.mp4")
+
                 elif asset.type == AssetType.IMAGE:
                     clip = ImageClip(asset.local_path).set_duration(asset_duration)
-                    save_intermediate_clip(clip, f"original_image_{index}.mp4")
                 else:
                     logger.warning(f"Unsupported asset type: {asset.type}. Skipping this asset.")
                     continue
@@ -68,15 +66,13 @@ async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_
                     new_width = int(height * clip_aspect_ratio)
 
                 clip = clip.resize(newsize=(new_width, new_height))
-                #save_intermediate_clip(clip, f"resized_clip_{index}.mp4")
+        
                 
                 clip = clip.set_position(("center", "center"))
-                #save_intermediate_clip(clip, f"positioned_clip_{index}.mp4")
+            
 
                 composite_clip = CompositeVideoClip([background.copy(), clip], size=(width, height))
                 composite_clip = composite_clip.set_duration(asset_duration)
-                #save_intermediate_clip(composite_clip, f"composite_clip_{index}.mp4")
-                
                 clips.append(composite_clip)
             except Exception as e:
                 logger.error(f"Error processing asset {index}: {str(e)}")
