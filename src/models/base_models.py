@@ -116,6 +116,7 @@ class ActorBase(BaseModel):
     full_video_link: str
     thumbnail_image_url: Optional[str]
     default_voice_id: UUID
+    is_visible: bool
 
 class Actor(ActorBase):
     id: UUID
@@ -134,6 +135,7 @@ class VoiceBase(BaseModel):
     gender: str
     voice_identifier: OpenAIVoiceIdentifier
     sample_audio_url: Optional[str] = None
+    is_visible: bool
 
 class Voice(VoiceBase):
     id: UUID
@@ -167,7 +169,8 @@ class ProjectDTO(BaseModel):
     user_id: UUID
     product_id: UUID
     status: ProjectStatus
-
+    video_configuration: VideoConfiguration
+    final_script: str
     created_at: datetime
     updated_at: datetime
     final_video_url: Optional[str] = None

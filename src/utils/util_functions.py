@@ -36,7 +36,7 @@ def save_file_locally(path, file):
 
 def determine_asset_type(filename):
     logger.info(f"Determining asset type for file: {filename}")
-    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff')):
+    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.webp')):
         logger.info(f"File {filename} determined to be of type IMAGE")
         return AssetType.IMAGE
     elif filename.lower().endswith(('.mp4', '.avi', '.mov', '.wmv', '.flv', '.mkv')):

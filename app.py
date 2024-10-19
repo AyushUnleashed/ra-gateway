@@ -54,4 +54,4 @@ async def trigger_error():
     division_by_zero = 1 / 0
       
 if __name__ == '__main__':
-    uvicorn.run("app:app", host="0.0.0.0", port=5151, reload=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=5151, workers=2, reload=True)
