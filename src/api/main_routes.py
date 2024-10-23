@@ -510,9 +510,10 @@ async def video_post_processing(project: Project):
         video_layout_base = await get_video_layout_base(project.video_layout_id)
         project.video_layout_base = video_layout_base
 
-        # Edit final video
+        # Run CPU-bound video editing in thread pool
         logger.info(f"Editing final video for project {project.id}")
-        final_video_local_path = await edit_final_video(
+        final_video_local_path = await asyncio.to_thread(
+            edit_final_video,
             lipsync_video_local_path,
             final_video_local_path,
             project.video_layout_base.name,
@@ -535,8 +536,17 @@ async def video_post_processing(project: Project):
         )
 
         final_video_with_captions_local_path = get_local_path(project.id, "working", "final_video_with_captions.mp4")
+      
+        # Run CPU-bound caption processing in thread pool
         logger.info(f"Adding captions to final video for project {project.id}")
-        process_video_for_captions(final_video_local_path, final_video_with_captions_local_path, caption_type, font_path=roboto_font_path, font_size=32)
+        await asyncio.to_thread(
+            process_video_for_captions,
+            final_video_local_path,
+            final_video_with_captions_local_path,
+            caption_type,
+            font_path=roboto_font_path,
+            font_size=32
+        )
 
         # Upload final video to Supabase
         logger.info(f"Uploading final video to Supabase for project {project.id}")

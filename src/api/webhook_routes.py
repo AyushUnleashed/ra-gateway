@@ -17,7 +17,7 @@ def save_to_file(data, filename):
     sample_responses_folder.mkdir(parents=True, exist_ok=True)
     with open(sample_responses_folder / filename, "w") as f:
         json.dump(data, f, indent=4)
-        
+
 @webhook_router.post("/webhook/replicate")
 async def replicate_webhook(request: Request, background_tasks: BackgroundTasks):
     try:
@@ -27,7 +27,7 @@ async def replicate_webhook(request: Request, background_tasks: BackgroundTasks)
         
         if status == "succeeded":
             logger.info("Prediction succeeded, processing in background.")
-            background_tasks.add_task(process_replicate_webhook, data)
+            background_tasks.add_task(process_replicate_webhook,data)
             return {"status": "received"}
         elif status == "failed":
             logger.warning("Prediction failed.")
@@ -43,7 +43,7 @@ async def replicate_webhook(request: Request, background_tasks: BackgroundTasks)
             return {"status": "unknown", "message": "The prediction status is unknown."}
     except Exception as e:
         logger.error(f"Error processing webhook: {str(e)}")
-        return handle_webhook_error(data, str(e))
+        return await handle_webhook_error(data, str(e))
 
 async def process_replicate_webhook(data):
     try:
