@@ -563,16 +563,36 @@ async def video_post_processing(project: Project):
 
         await update_project_in_db(project)
         logger.info(f"Video post-processing completed for project {project.id}")
-        await RA_SLACK_BOT.send_message(f"Video processing completed for project {project.id} \n final_video_url: {final_video_url}")
+
+        await send_video_ready_notification(project.id, project.user_id, final_video_url)
+      
         return project
 
     except Exception as e:
         error_message = str(e)
         logger.error(f"An error occurred during video post-processing: {error_message}")
         project.status = ProjectStatus.FAILED
-        await RA_SLACK_BOT.send_message(f"An error occurred during video post-processing: {error_message} for project {project.id}")
+        await RA_SLACK_BOT.send_message(f"env:{Config.APP_ENV} \n project_id:{project.id} \n An error occurred during video post-processing: {error_message} for project {project.id}")
         await update_project_in_db(project)
         raise HTTPException(status_code=500, detail=error_message)
+
+
+async def send_video_ready_notification(project_id, user_id, final_video_url):
+    try:
+        await RA_SLACK_BOT.send_message(f"env:{Config.APP_ENV} \n project_id:{project_id} \n Video processing completed for project {project_id} \n final_video_url: {final_video_url}")
+
+        # get user email
+        user = await get_user_from_db(user_id)
+        user_email = user.email
+        logger.info( f"Sending video ready notification for project {project_id} to user {user_email}")
+        # Send email notification
+        await send_video_ready_alert(user_email, project_id)
+    except Exception as e:
+        logger.error(f"An error occurred while sending video ready notification: {str(e)}")
+        raise HTTPException(status_code=500, detail="An error occurred while sending video ready notification")
+
+# if __name__ == "__main__":
+#     asyncio.run(send_video_ready_notification("46b8cc8a-70bd-4b60-8fc2-9e8bdbffdd4a","814f3aa0-421b-475f-9489-38aea444f364","final_video_url"))
 
 
 @main_router.get("/health")

@@ -48,3 +48,12 @@ async def update_user_in_db(user: User) -> User:
 #     except Exception as e:
 #         raise Exception(f"An error occurred while deleting the user from the database: {e}")
 
+import asyncio
+
+if __name__ == "__main__":
+    async def main():
+        user_id = UUID("814f3aa0-421b-475f-9489-38aea444f364")
+        user = await get_user_from_db(user_id)
+        print(f"Retrieved user with ID {user_id}: {user}")
+
+    asyncio.run(main())

@@ -1,6 +1,7 @@
 from uuid import UUID
 from fastapi import BackgroundTasks, Request, HTTPException
 from fastapi import APIRouter
+from src.config import Config
 from src.models.base_models import Project, ProjectStatus
 from src.models.shared_state import projects_in_memory
 from src.api.main_routes import video_post_processing
@@ -83,5 +84,5 @@ async def handle_webhook_error(data, error_message):
     logger.error(f"An error occurred: {error_message}")
     prediction_id = data.get("id")
     await update_project_status(prediction_id, ProjectStatus.ACTOR_GENERATION_FAILED)
-    await RA_SLACK_BOT.send_message(f"An error occurred during video processing: {error_message} for {prediction_id}")
+    await RA_SLACK_BOT.send_message(f" env:{Config.APP_ENV} \n prediction_id:{prediction_id} An error occurred during video processing: {error_message} for {prediction_id}")
     raise HTTPException(status_code=500, detail=error_message)

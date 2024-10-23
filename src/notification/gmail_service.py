@@ -33,30 +33,32 @@ async def send_email(subject, body, sender, sender_title, recipients, server='sm
         server = smtplib.SMTP_SSL(host=server, port=port)
         server.login(sender, password)
         server.send_message(msg)
-        logger.info("Email sent successfully!")
+        logger.info(f"Email sent successfully to: {recipients}")
     except Exception as e:
         logger.error(f"Failed to send email: {e}")
 
-async def send_video_ready_alert(user_email):
-    recipients = [user_email]
-    subject = "Your Video Ad is Ready!"
-    body = f"""
-    <html>
-        <body>
-            <p>Hello,</p>
-            <p>Your video ad has been generated and is now available in your projects section.</p>
-            <p>You can view your ad <a href="https://www.reelsai.pro/projects">here</a>.</p>
-            <br>
-            <p>Best regards,</p>
-            <p>Ayush - Founder,<br>reelsai.pro</p>
-        </body>
-    </html>
-    """
-    sender_title = "Ayush - ReelsAI"
-    logger.info("Preparing to send video ready alert email...")
-    await send_email(subject, body, Constants.SENDER_EMAIL, sender_title, recipients)
+async def send_video_ready_alert(user_email:str, project_id:str):
+    try:
+        recipients = [user_email]
+        subject = "Your Video Ad is Ready!"
+        body = f"""
+        <html>
+            <body>
+                <p>Hello,</p>
+                <p>Your video ad has been generated and is now available in your projects section.</p>
+                <p>You can view your ad <a href="https://www.reelsai.pro/projects/{project_id}">here</a>.</p>
+                <br>
+                <p>Best regards,</p>
+                <p>Ayush - Founder,<br>reelsai.pro</p>
+            </body>
+        </html>
+        """
+        sender_title = "Ayush - ReelsAI"
+        await send_email(subject, body, Constants.SENDER_EMAIL, sender_title, recipients)
+    except Exception as e:
+        logger.error(f"Failed to send video ready alert email: {e}")
 
 if __name__ == "__main__":
     # For testing purposes
     import asyncio
-    asyncio.run(send_video_ready_alert("ayushyadavcodes@gmail.com"))
+    asyncio.run(send_video_ready_alert("ayushyadavcodes@gmail.com","46b8cc8a-70bd-4b60-8fc2-9e8bdbffdd4a"))
