@@ -10,7 +10,7 @@ from src.services.video_editing.edit_asset_video import edit_asset_video
 from src.utils.file_handling import get_local_path
 from src.utils.logger import logger
 
-async def edit_final_video(lipsync_video_local_path: str, final_video_path: str, layout_type: VideoLayoutType, assets: List[Asset], final_video_duration: int, project_id: UUID) -> str:
+def edit_final_video(lipsync_video_local_path: str, final_video_path: str, layout_type: VideoLayoutType, assets: List[Asset], final_video_duration: int, project_id: UUID) -> str:
     try:
         logger.info(f"Starting to edit final video for project {project_id}")
 
@@ -27,7 +27,7 @@ async def edit_final_video(lipsync_video_local_path: str, final_video_path: str,
 
         logger.info(f"Editing asset video for project {project_id}")
         # Call function to edit the video
-        asset_video_path = await edit_asset_video(
+        asset_video_path = edit_asset_video(
             assets=assets,
             final_video_length=final_video_duration,
             aspect_ratio=aspect_ratio,

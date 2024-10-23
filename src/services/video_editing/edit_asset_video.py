@@ -25,7 +25,7 @@ def save_intermediate_clip(clip, filename, fps=25):
     logger.debug(f"Saving intermediate clip to {output_path}")
     clip.write_videofile(output_path, codec="libx264", fps=fps)
 
-async def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_ratio: AspectRatio, asset_edited_video_path: str) -> str:
+def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_ratio: AspectRatio, asset_edited_video_path: str) -> str:
     try:
         logger.info("Starting asset editing process")
         if aspect_ratio == AspectRatio.SQUARE.value:
@@ -134,5 +134,5 @@ if __name__ == "__main__":
 
     # Run the edit_asset_video function
     logger.info("Running the edit_asset_video function")
-    edited_video_path = asyncio.run(edit_asset_video(assets, final_video_length, aspect_ratio))
+    edited_video_path =edit_asset_video(assets, final_video_length, aspect_ratio)
     logger.info(f"Edited video saved at: {edited_video_path}")
