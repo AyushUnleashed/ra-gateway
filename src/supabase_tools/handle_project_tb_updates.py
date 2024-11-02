@@ -34,8 +34,6 @@ async def get_all_projects_from_db(user_id: UUID) -> List[Project]:
         projects_data = response.data
         if not projects_data:
             raise Exception("No projects found for the given user")
-        for project in projects_data:
-            print(project)
         return [Project(**project) for project in projects_data]
     except Exception as e:
         raise Exception(f"An error occurred while fetching all projects from the database: {e}")
