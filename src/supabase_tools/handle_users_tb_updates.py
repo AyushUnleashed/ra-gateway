@@ -31,7 +31,6 @@ async def update_user_in_db(user: User) -> User:
     try:
         serialized_user = user.serialize_for_db()
         response = SUPABASE_CLIENT.table(TableNames.PROFILES).update(serialized_user).eq("id", str(user.id)).execute()
-        print(response)
         if not response.data:
             raise Exception("Failed to update user in the database")
         user_credits = response.data[0].get("credits")
