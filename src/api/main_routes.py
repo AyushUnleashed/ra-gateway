@@ -209,6 +209,7 @@ async def create_project(request: CreateProjectRequest,user_id: UUID = Depends(v
 
         projects_in_memory[project_id] = project
         logger.info(f"Project created in memory: {project}")
+        logger.info(f"Projects in memory size: {len(projects_in_memory)}")
 
         return {"project_id": project_id}
     except HTTPException as e:
