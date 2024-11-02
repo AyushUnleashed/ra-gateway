@@ -1,5 +1,6 @@
 import os
 from dotenv import find_dotenv, load_dotenv
+from fastapi import HTTPException
 from src.api.llm_api.prompts import GENERATE_SCRIPT_PROMPT
 import aiohttp
 import asyncio
@@ -83,7 +84,7 @@ async def fetch_openai_response(user_prompt: str):
 
     except Exception as e:
         logger.exception("Exception occurred while fetching response from OpenAI: %s", e)
-        return None
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 async def fetch_openai_response_with_system_prompt(user_prompt: str, system_prompt: str):
     try:
@@ -107,8 +108,9 @@ async def fetch_openai_response_with_system_prompt(user_prompt: str, system_prom
 
         async with aiohttp.ClientSession() as session:
             async with session.post("https://api.openai.com/v1/chat/completions", headers=headers, data=data) as response:
+                response_text = await response.text()
                 if response.status == 200:
-                    openai_response = await response.json()
+                    openai_response = json.loads(response_text) 
                     logger.info(openai_response)
                     reply = openai_response['choices'][0]['message']['content']
                     completion_tokens = openai_response['usage']['completion_tokens']
@@ -124,12 +126,35 @@ async def fetch_openai_response_with_system_prompt(user_prompt: str, system_prom
                     logger.info("Response received.")
                     return reply
                 else:
-                    logger.error("Error fetching response: %s", await response.text())
-                    return None
-
+                    error_body = json.loads(response_text)
+                    if "insufficient_quota" in str(error_body):
+                        logger.error("OpenAI API quota exceeded")
+                        raise HTTPException(
+                            status_code=503,
+                            detail={
+                                "error": "service_unavailable",
+                                "message": "Service temporarily unavailable",
+                                "retry_after": "3600"  # Suggest retry after 1 hour
+                            }
+                        )
+                    logger.error("Error from OpenAI: %s", response_text)
+                    raise HTTPException(
+                        status_code=response.status,
+                        detail=f"Error from OpenAI: {error_body.get('error', {}).get('message', 'Unknown error')}"
+                    )
+                
+    except HTTPException as http_ex:
+        # Re-raise HTTP exceptions
+        raise
+    except json.JSONDecodeError:
+        logger.exception("Failed to parse OpenAI response")
+        raise HTTPException(status_code=500, detail="Failed to parse OpenAI response")
+    except aiohttp.ClientError as e:
+        logger.exception("Network error while calling OpenAI")
+        raise HTTPException(status_code=500, detail="Failed to connect to OpenAI")
     except Exception as e:
-        logger.exception("Exception occurred while fetching response from OpenAI: %s", e)
-        return None
+        logger.exception("Unexpected error: %s", str(e))
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 if __name__ == "__main__":
     prompt = " Superheroai: It helps you generate superhero avatar of yourself using AI"

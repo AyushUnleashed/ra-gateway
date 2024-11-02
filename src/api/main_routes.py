@@ -1,5 +1,5 @@
 import asyncio
-from fastapi import UploadFile, File, HTTPException
+from fastapi import Body, UploadFile, File, HTTPException
 from uuid import uuid4, UUID
 from typing import List, Optional
 from datetime import datetime
@@ -280,16 +280,47 @@ async def get_script(project_id: UUID):
 
     return [project.script.dict()]
 
-@main_router.put("/api/projects/{project_id}/script")
-async def finalize_script(project_id: UUID, body: dict):
+
+@main_router.put("/api/projects/{project_id}/scripts/update")
+async def update_script(project_id: UUID, script_id: UUID =  Body(...), content: str =  Body(...)):
     if project_id not in projects_in_memory:
         logger.warning(f"Project not found: {project_id}")
         raise HTTPException(status_code=404, detail="Project not found")
 
     project = projects_in_memory[project_id]
 
-    project.final_script = body['script']
-    logger.info(f"Final script set for project {project_id}: {project.final_script}")
+    if not project.script or project.script.id != script_id:
+        logger.warning(f" Project Script: {project.script} Script ID: {script_id} & project script id: {project.script.id}")
+        logger.error(f"Script not found for project {project_id} with script id {script_id}")
+        raise HTTPException(status_code=404, detail="Script not found")
+
+    project.script.content = content
+    logger.info(f"Script content updated for project {project_id}, script {script_id}: {project.script.content}")
+    project.updated_at = datetime.now()
+
+    return {"script_updated": True, "message": "Script content updated successfully"}
+
+@main_router.put("/api/projects/{project_id}/scripts/finalize")
+async def finalize_script(project_id: UUID, body: dict):
+    script_id = UUID(body.get('script_id'))
+    is_custom = body.get('is_custom', False)
+    content = body.get('content')
+
+    if project_id not in projects_in_memory:
+        logger.warning(f"Project not found: {project_id}")
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    project = projects_in_memory[project_id]
+
+    if not is_custom:
+        if not project.script or project.script.id != script_id:
+            logger.warning(f"Script not found for project {project_id} with script id {script_id}")
+            raise HTTPException(status_code=404, detail="Script not found")
+        project.final_script = project.script.content
+    else:
+        project.final_script = content
+
+    logger.info(f"Final script set for project {project_id} with script id {script_id}: {project.final_script}")
     project.updated_at = datetime.now()
 
     return {"final_script_set": True, "message": "Script has been set as final script for the project"}
@@ -328,7 +359,8 @@ async def select_actor_voice(project_id: UUID, request: SelectActorVoiceRequest)
         gender=actor.gender,
         full_video_link=actor.full_video_link,
         thumbnail_image_url=actor.thumbnail_image_url,
-        default_voice_id=actor.default_voice_id
+        default_voice_id=actor.default_voice_id,
+        is_visible=actor.is_visible
     )
 
     project.actor_base = actor_base
@@ -339,7 +371,8 @@ async def select_actor_voice(project_id: UUID, request: SelectActorVoiceRequest)
     voice_base = VoiceBase(
         name=voice.name,
         gender=voice.gender,
-        voice_identifier=voice.voice_identifier
+        voice_identifier=voice.voice_identifier,
+        is_visible=voice.is_visible
     )
 
     project.voice_base = voice_base

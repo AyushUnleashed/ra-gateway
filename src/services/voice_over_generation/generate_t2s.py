@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import Tuple
+from fastapi import HTTPException
 import replicate
 from dotenv import load_dotenv
 import os
@@ -50,6 +51,16 @@ async def openai_text_to_speech(script: str, voice: OpenAIVoiceIdentifier, outpu
                     return output_file_path
                 else:
                     error_message = await response.text()
+                    if response.status == 503:
+                        logger.error("OpenAI API service unavailable")
+                        raise HTTPException(
+                            status_code=503,
+                            detail={
+                                "error": "service_unavailable",
+                                "message": "Service temporarily unavailable",
+                                "retry_after": "3600"  # Suggest retry after 1 hour
+                            }
+                        )
                     logger.error(f"Failed to generate text-to-speech audio: {error_message}")
                     raise Exception(f"Failed to generate text-to-speech audio: {error_message}")
     except Exception as e:
