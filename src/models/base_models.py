@@ -200,7 +200,7 @@ class Project(ProjectDTO):
 
     def serialize_for_db(self) -> Dict[str, Any]:
         data = self.model_dump(exclude={"product_base", "actor_base", "voice_base","video_layout_base","script"})
-        print(data)
+        # print(data)
 
         # Convert UUID to string
         data['id'] = str(data['id'])
