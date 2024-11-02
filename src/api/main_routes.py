@@ -1,5 +1,5 @@
 import asyncio
-from fastapi import UploadFile, File, HTTPException
+from fastapi import Body, UploadFile, File, HTTPException
 from uuid import uuid4, UUID
 from typing import List, Optional
 from datetime import datetime
@@ -280,11 +280,9 @@ async def get_script(project_id: UUID):
 
     return [project.script.dict()]
 
-@main_router.put("/api/projects/{project_id}/scripts/update")
-async def update_script(project_id: UUID, body: dict):
-    script_id = UUID(body.get('script_id'))
-    content = body.get('content')
 
+@main_router.put("/api/projects/{project_id}/scripts/update")
+async def update_script(project_id: UUID, script_id: UUID =  Body(...), content: str =  Body(...)):
     if project_id not in projects_in_memory:
         logger.warning(f"Project not found: {project_id}")
         raise HTTPException(status_code=404, detail="Project not found")
@@ -361,7 +359,8 @@ async def select_actor_voice(project_id: UUID, request: SelectActorVoiceRequest)
         gender=actor.gender,
         full_video_link=actor.full_video_link,
         thumbnail_image_url=actor.thumbnail_image_url,
-        default_voice_id=actor.default_voice_id
+        default_voice_id=actor.default_voice_id,
+        is_visible=actor.is_visible
     )
 
     project.actor_base = actor_base
@@ -372,7 +371,8 @@ async def select_actor_voice(project_id: UUID, request: SelectActorVoiceRequest)
     voice_base = VoiceBase(
         name=voice.name,
         gender=voice.gender,
-        voice_identifier=voice.voice_identifier
+        voice_identifier=voice.voice_identifier,
+        is_visible=voice.is_visible
     )
 
     project.voice_base = voice_base
