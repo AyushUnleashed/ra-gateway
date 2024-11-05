@@ -143,7 +143,7 @@ class VoiceBase(BaseModel):
     name: str
     gender: str
     provider: TTSProvider
-    voice_identifier: OpenAIVoiceIdentifier |  ElevenLabsVoiceIdentifier # Can be either OpenAIVoiceIdentifier or ElevenLabsVoiceIdentifier
+    voice_identifier: Union[OpenAIVoiceIdentifier,ElevenLabsVoiceIdentifier] # Can be either OpenAIVoiceIdentifier or ElevenLabsVoiceIdentifier
     sample_audio_url: Optional[str] = None
     is_visible: bool
 
