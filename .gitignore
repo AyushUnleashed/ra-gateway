@@ -1,4 +1,5 @@
-venv
+.venv/
+venv/
 _pycache_
 src/temp_storage/
 src/assets/
