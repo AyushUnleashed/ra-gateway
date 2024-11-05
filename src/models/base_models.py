@@ -130,10 +130,20 @@ class Actor(ActorBase):
 
 
 # Voice
+class TTSProvider(str, Enum):
+    OPENAI = "openai"
+    ELEVEN_LABS = "eleven_labs"
+
+
+class ElevenLabsVoiceIdentifier(str, Enum):
+    ADAM = "pNInz6obpgDQGcFmaJgB"
+    # Add more voice IDs as needed
+
 class VoiceBase(BaseModel):
     name: str
     gender: str
-    voice_identifier: OpenAIVoiceIdentifier
+    provider: TTSProvider
+    voice_identifier: OpenAIVoiceIdentifier |  ElevenLabsVoiceIdentifier # Can be either OpenAIVoiceIdentifier or ElevenLabsVoiceIdentifier
     sample_audio_url: Optional[str] = None
     is_visible: bool
 
@@ -142,12 +152,9 @@ class Voice(VoiceBase):
 
     def serialize_for_db(self) -> Dict[str, Any]:
         data = self.model_dump()
-        # Convert UUID to string
         data['id'] = str(data['id'])
-        # Convert Enum to string
-        data['voice_identifier'] = data['voice_identifier'].value
         return data
-
+    
 # VideoLayout
 class VideoLayoutBase(BaseModel):
     name: str

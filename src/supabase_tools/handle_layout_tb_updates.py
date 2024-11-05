@@ -3,6 +3,7 @@ from typing import List
 from uuid import UUID
 from src.supabase_tools.supabase_client import SUPABASE_CLIENT
 from src.utils.constants import TableNames
+from src.utils.logger import logger
 
 def get_layouts_from_db() -> List[VideoLayout]:
     response = SUPABASE_CLIENT.table(TableNames.VIDEO_LAYOUTS).select("*").execute()
@@ -16,9 +17,9 @@ def get_layout_from_db(layout_id: UUID) -> VideoLayout:
 
 if __name__ == "__main__":
     layouts = get_layouts_from_db()
-    print(f"Retrieved {len(layouts)} layouts from the database.")
+    logger.info(f"Retrieved {len(layouts)} layouts from the database.")
     
     if layouts:
         layout_id = layouts[0].id
         layout = get_layout_from_db(layout_id)
-        print(f"Retrieved layout with ID {layout_id}: {layout}")
+        logger.info(f"Retrieved layout with ID {layout_id}: {layout}")
