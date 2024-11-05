@@ -23,6 +23,7 @@ env:
   SENTRY_DSN: ${{ vars.SENTRY_DSN }}
   APP_ENV: prod
   SLACKBOT_RA_WEBHOOK_URL: ${{ vars.SLACKBOT_RA_WEBHOOK_URL }}
+  ELEVEN_LABS_API_KEY: ${{ secrets.ELEVEN_LABS_API_KEY }}
 
 jobs:
   build:
@@ -67,6 +68,7 @@ jobs:
             --build-arg SENTRY_DSN="${SENTRY_DSN}" \
             --build-arg APP_ENV="${APP_ENV}" \
             --build-arg SLACKBOT_RA_WEBHOOK_URL="${SLACKBOT_RA_WEBHOOK_URL}" \
+            --build-arg ELEVEN_LABS_API_KEY="${ELEVEN_LABS_API_KEY}" \
             .
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
           echo "Pushing Docker images to ECR..."
