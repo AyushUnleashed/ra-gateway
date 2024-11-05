@@ -14,3 +14,4 @@ class Config:
     ZOHO_APP_PASSWORD = os.getenv("ZOHO_APP_PASSWORD")
     SENTRY_DSN = os.getenv("SENTRY_DSN")
     APP_ENV = os.getenv("APP_ENV")
+    ELEVEN_LABS_API_KEY = os.getenv("ELEVEN_LABS_API_KEY")

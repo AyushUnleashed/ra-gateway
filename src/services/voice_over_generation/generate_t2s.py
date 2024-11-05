@@ -1,85 +1,62 @@
+# src/services/voice_over_generation/generate_t2s.py
 import os
 from pathlib import Path
 from typing import Tuple
+from uuid import UUID
 from fastapi import HTTPException
-import replicate
-from dotenv import load_dotenv
-import os
-from src.aws_tools.upload_to_s3 import upload_to_s3
+import asyncio
+from src.models.base_models import VoiceBase, TTSProvider
+from src.services.voice_over_generation.openai_t2s import openai_text_to_speech
+from src.services.voice_over_generation.elevenlabs_t2s import elevenlabs_text_to_speech
 from src.supabase_tools.handle_bucket_updates import upload_file_to_projects
 from src.utils.constants import Constants
-from src.models.base_models import OpenAIVoiceIdentifier
 from src.utils.logger import logger
-from src.config import Config
-import asyncio
-load_dotenv()
 
-# voice = "nova"
-import aiohttp
+async def generate_t2s_audio(project_id: str, script: str, voice: VoiceBase) -> Tuple[str, float]:
+    logger.info(f"Generating audio from script for voice: {voice.name}")
 
-async def openai_text_to_speech(script: str, voice: OpenAIVoiceIdentifier, output_file_path: str):
-    logger.info("Starting OpenAI text-to-speech conversion.")
-    
-    speech_file_path = Path(output_file_path)
-    speech_file_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
-    logger.debug(f"Output file path set to: {speech_file_path}")
-    
-    url = "https://api.openai.com/v1/audio/speech"
-    headers = {
-        "Authorization": f"Bearer {Config.OPENAI_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "model": "tts-1",
-        "input": script,
-        "voice": voice.value
-    }
-    logger.debug(f"Sending request to OpenAI API with data: {data}")
-    
+    cache = False
+    if cache:
+        logger.info("Returning cached audio file URL and duration.")
+        return "https://reels-ai-pro-bucket.s3.ap-south-1.amazonaws.com/prod-bucket/voices/FGY2WhTYpPnrIDTdsKH5/laura_reelsai_ad_sample.wav", 32.00
+
+    t2s_output_audio_path = f"{Constants.LOCAL_STORAGE_BASE_PATH}/{project_id}/working/t2s_{voice.voice_identifier}.wav"
+    logger.debug(f"Output audio path set to: {t2s_output_audio_path}")
+
+    # Choose TTS provider based on voice configuration
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, headers=headers, json=data) as response:
-                if response.status == 200:
-                    logger.info("Received successful response from OpenAI API.")
-                    with open(speech_file_path, 'wb') as f:
-                        while True:
-                            chunk = await response.content.read(1024)
-                            if not chunk:
-                                break
-                            f.write(chunk)
-                    logger.info(f"Audio file written to: {output_file_path}")
-                    return output_file_path
-                else:
-                    error_message = await response.text()
-                    if response.status == 503:
-                        logger.error("OpenAI API service unavailable")
-                        raise HTTPException(
-                            status_code=503,
-                            detail={
-                                "error": "service_unavailable",
-                                "message": "Service temporarily unavailable",
-                                "retry_after": "3600"  # Suggest retry after 1 hour
-                            }
-                        )
-                    logger.error(f"Failed to generate text-to-speech audio: {error_message}")
-                    raise Exception(f"Failed to generate text-to-speech audio: {error_message}")
-    except Exception as e:
-        logger.error(f"Failed to generate text-to-speech audio: {e}")
+        if voice.provider == TTSProvider.OPENAI:
+            await openai_text_to_speech(script, voice.voice_identifier, t2s_output_audio_path)
+        elif voice.provider == TTSProvider.ELEVEN_LABS:
+            await elevenlabs_text_to_speech(script, voice.voice_identifier, t2s_output_audio_path)
+        else:
+            raise ValueError(f"Unsupported TTS provider: {voice.provider}")
+    except HTTPException as e:
+        logger.error(f"TTS API error: {str(e)}")
         raise
+    except Exception as e:
+        logger.error(f"Unexpected error during TTS generation: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error during TTS generation")
 
-# def get_audio_duration(audio_file_path: str) -> float:
-#     import wave
+    # Get audio duration
+    try:
+        duration = await get_audio_duration_librosa(t2s_output_audio_path)
+    except Exception as e:
+        logger.error(f"Failed to get audio duration: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to process generated audio")
 
-#     try:
-#         with wave.open(audio_file_path, 'rb') as audio_file:
-#             frames = audio_file.getnframes()
-#             rate = audio_file.getframerate()
-#             duration = frames / float(rate)
-#             logger.info(f"Audio duration: {duration} seconds")
-#         return duration
-#     except wave.Error as e:
-#         logger.error(f"Failed to get audio duration: {e}")
-#         raise
+    try:
+        t2s_output_audio_file_url = upload_file_to_projects(
+            local_path=t2s_output_audio_path,
+            project_id=project_id,
+            content_type="audio/wav"
+        )
+        logger.info(f"T2S file uploaded successfully at path: {t2s_output_audio_file_url}")
+    except Exception as e:
+        logger.error(f"Failed to upload T2S file to storage: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to store generated audio")
+
+    return t2s_output_audio_file_url, duration
 
 async def get_audio_duration_librosa(audio_file_path: str) -> float:
     import librosa
@@ -92,56 +69,50 @@ async def get_audio_duration_librosa(audio_file_path: str) -> float:
         logger.error(f"Failed to get audio duration using librosa: {e}")
         raise
 
-
-
-async def generate_t2s_audio(project_id: str, script: str, voice_identifier: OpenAIVoiceIdentifier) -> Tuple[str, float]:
-    logger.info(f"Generating audio from script for voice: {voice_identifier}")
-
-    cache = False
-    if cache == True:
-        logger.info("Returning cached audio file URL and duration.")
-        return "https://reels-ai-pro-bucket.s3.ap-south-1.amazonaws.com/prod-bucket/voices/a059382e-5d8d-49ec-96d1-eb7e46c04e31/t2s_nova.wav",22.368
-
-    t2s_output_audio_path = f"{Constants.LOCAL_STORAGE_BASE_PATH}/{project_id}/working/t2s_{voice_identifier.value}.wav"
-    logger.debug(f"Output audio path set to: {t2s_output_audio_path}")
-    
-    await openai_text_to_speech(script, voice_identifier, t2s_output_audio_path)
-    
-    # Read the audio file and get its duration
-    duration = await get_audio_duration_librosa(t2s_output_audio_path)
-    #duration = 0.0
-
-    try:
-        t2s_output_audio_file_url = upload_file_to_projects(
-            local_path=t2s_output_audio_path,
-            project_id=project_id,
-            content_type="audio/wav"
-        )
-        logger.info(f"OpenAI T2S file uploaded successfully at path: {t2s_output_audio_file_url}")
-    except Exception as e:
-        logger.error(f"Failed to upload T2S file to Supabase: {e}")
-        raise
-
-    return t2s_output_audio_file_url, duration
-
 if __name__ == "__main__":
-    # from src.utils.constants import DEMO_SCRIPT
+
+
+
+    
     async def main():
-        DEMO_SCRIPT = "Tired of AI-generated content that sounds robotic? Meet Longshot AI, your AI co-pilot for creating content that ranks and resonates. With features like one-click SEO blogs, fact-checking, and real-time content optimization, Longshot AI revolutionizes your content strategy. Say goodbye to confusion and hello to unbeatable results. Plan, generate, and optimize with ease. Visit longshot.ai and transform your content game today."
-        logger.info("Starting main function for T2S audio generation.")
-        url, duration = await generate_t2s_audio(
+        DEMO_SCRIPT = "Tired of AI-generated content that sounds robotic? Meet Longshot AI..."
+        
+        # Test with OpenAI voice
+        openai_test_voice = VoiceBase(
+            id=UUID('12345678-1234-5678-1234-567812345678'),
+            name="Nova",
+            gender="female",
+            provider=TTSProvider.OPENAI,
+            voice_identifier="nova",
+            is_visible=True
+        )
+        
+        # Test with Eleven Labs voice
+        eleven_labs_test_voice = VoiceBase(
+            id=UUID('87654321-4321-8765-4321-876543210987'),
+            name="Adam",
+            gender="male",
+            provider=TTSProvider.ELEVEN_LABS,
+            voice_identifier="pNInz6obpgDQGcFmaJgB",
+            is_visible=True
+        )
+
+        # Test OpenAI
+        # logger.info("Testing OpenAI TTS...")
+        # url1, duration1 = await generate_t2s_audio(
+        #     project_id="test_project_id",
+        #     script=DEMO_SCRIPT,
+        #     voice=openai_test_voice
+        # )
+        # logger.info(f"Generated OpenAI T2S audio URL: {url1}, Duration: {duration1}")
+
+        # Test Eleven Labs
+        logger.info("Testing Eleven Labs TTS...")
+        url2, duration2 = await generate_t2s_audio(
             project_id="test_project_id",
             script=DEMO_SCRIPT,
-            voice_identifier=OpenAIVoiceIdentifier.NOVA
+            voice=eleven_labs_test_voice
         )
-        logger.info(f"Generated T2S audio URL: {url}, Duration: {duration}")
+        logger.info(f"Generated Eleven Labs T2S audio URL: {url2}, Duration: {duration2}")
 
-    asyncio.run(main())
-
-if __name__ == "__main__":
-    async def main():
-        logger.info("Starting main function for audio duration calculation.")
-        await get_audio_duration_librosa(audio_file_path="src/temp_storage/be41c076-2813-4160-a8bc-67169a04cefa/working/t2s_nova.wav")
-        
-    import asyncio
     asyncio.run(main())

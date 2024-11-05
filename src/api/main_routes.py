@@ -373,7 +373,8 @@ async def select_actor_voice(project_id: UUID, request: SelectActorVoiceRequest)
         name=voice.name,
         gender=voice.gender,
         voice_identifier=voice.voice_identifier,
-        is_visible=voice.is_visible
+        is_visible=voice.is_visible,
+        provider=voice.provider
     )
 
     project.voice_base = voice_base
@@ -493,7 +494,7 @@ async def process_video(project_id: UUID):
         project = projects_in_memory[project_id]
 
         # Generate T2S audio
-        t2s_audio_url, audio_duration = await generate_t2s_audio(project.id, project.final_script, project.voice_base.voice_identifier)
+        t2s_audio_url, audio_duration = await generate_t2s_audio(project.id, project.final_script, project.voice_base)
         project.t2s_audio_url = t2s_audio_url
         project.final_video_duration = audio_duration
         project.status = ProjectStatus.AUDIO_READY
