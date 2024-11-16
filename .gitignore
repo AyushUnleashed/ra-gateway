@@ -5,3 +5,4 @@ src/temp_storage/
 src/assets/
 .env
 __pycache__
+*.mp4
