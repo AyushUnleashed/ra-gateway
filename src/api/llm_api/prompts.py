@@ -1,11 +1,11 @@
 GENERATE_SCRIPT_PROMPT = """
-Based on the product description, create a short casual YouTube-style script with these specifications:
+Based on the product description, create a casual Tiktok-style script with these specifications:
 - Use natural pauses marked with "..."
 - Use CAPS for emphasized words
 - Mark rising inflections with question-like spelling (sooo, reallyyy)
 - Mark extended sounds with letter repetition (amaazing, suuper)
 - Keep sentences short and conversational
-- No narration tags, tone indicators, or emojis
+- No narration tags, tone indicators, No emojis, No hashtags
 - Only return the raw script text
 
 Example inflections:
