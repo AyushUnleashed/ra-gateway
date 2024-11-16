@@ -33,3 +33,29 @@ async def generate_script(product_description: str, product_name: str, cta: str,
     script = await fetch_openai_response_with_system_prompt(user_prompt, system_prompt=Prompts.GENERATE_SCRIPT_PROMPT)
     logger.info("Script fetched successfully for product: %s", product_name)
     return script
+
+if __name__ == "__main__":
+    import asyncio
+    sample_product_base = ProductBase(
+        name="ReelsAI.pro",
+        description="Generate Video Ads for your products in minutes. No video editing skills required. Just upload your product images and get a video ad in minutes. Try now!"
+    )
+    
+    sample_video_configuration = VideoConfiguration(
+        cta="Visit ReelsAI.pro now! Get started",
+        target_audience="Founer, Marketer, Business Owner",
+        duration=120,
+        direction="""
+        Steps:
+        1.Upload your product description
+        2. Genearte an ad script
+        3. Select Actor & voice
+        4. Get your video ad
+        """
+    )
+    
+    async def main():
+        script = await generate_script_with_llm(sample_product_base, sample_video_configuration)
+        print(script)
+    
+    asyncio.run(main())
