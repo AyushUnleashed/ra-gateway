@@ -14,6 +14,7 @@ def prepare_llm_prompt(product_description: str, product_name: str, cta: str, ta
     # Prepare the prompt for LLM.
     llm_prompt = f"\n Input Description:"
     llm_prompt += f"\n {product_description}"
+    llm_prompt += f"\n -------------------"
     llm_prompt += f"\n Product Name: {product_name}"
     llm_prompt += f"\n Call to Action: {cta}"
     llm_prompt += f"\n Target Audience: {target_audience}"
@@ -42,56 +43,18 @@ def set_system_prompt(NEW_PROMPT):
     chat_history = [{"role": "system", "content": NEW_PROMPT}]
 
 async def fetch_openai_response(user_prompt: str):
-    try:
-        reset_chat_history()
-        global chat_history
-        chat_history.append({"role": "user", "content": user_prompt})
-        logger.info("Waiting for OpenAI response...")
-
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {OPENAI_API_KEY}"
-        }
-
-        data = json.dumps({
-            "model": MODEL_NAME,
-            "messages": chat_history,
-            "max_tokens": 350,
-            "temperature": 0.5,
-        })
-
-        async with aiohttp.ClientSession() as session:
-            async with session.post("https://api.openai.com/v1/chat/completions", headers=headers, data=data) as response:
-                if response.status == 200:
-                    openai_response = await response.json()
-                    logger.info(openai_response)
-                    reply = openai_response['choices'][0]['message']['content']
-                    completion_tokens = openai_response['usage']['completion_tokens']
-                    prompt_tokens = openai_response['usage']['prompt_tokens']
-                    total_tokens = openai_response['usage']['total_tokens']
-
-                    logger.info("OpenAI Paid API reply: %s", reply)
-                    logger.info("Completion tokens: %d", completion_tokens)
-                    logger.info("Prompt tokens: %d", prompt_tokens)
-                    logger.info("Total tokens used: %d", total_tokens)
-
-                    chat_history.append({"role": "assistant", "content": reply})
-                    logger.info("Response received.")
-                    return reply
-                else:
-                    logger.error("Error fetching response: %s", await response.text())
-                    return None
-
-    except Exception as e:
-        logger.exception("Exception occurred while fetching response from OpenAI: %s", e)
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+    return await _fetch_openai_response_internal(user_prompt, SYSTEM_PROMPT, max_tokens=1000)
 
 async def fetch_openai_response_with_system_prompt(user_prompt: str, system_prompt: str):
+    return await _fetch_openai_response_internal(user_prompt, system_prompt, max_tokens=1000)
+
+async def _fetch_openai_response_internal(user_prompt: str, system_prompt: str, max_tokens: int):
     try:
         reset_chat_history()
         global chat_history
         chat_history = [{"role": "system", "content": system_prompt}]
         chat_history.append({"role": "user", "content": user_prompt})
+        logger.info("chat history: %s", chat_history)
         logger.info("Waiting for OpenAI response...")
 
         headers = {
@@ -102,7 +65,7 @@ async def fetch_openai_response_with_system_prompt(user_prompt: str, system_prom
         data = json.dumps({
             "model": MODEL_NAME,
             "messages": chat_history,
-            "max_tokens": 350,
+            "max_tokens": max_tokens,
             "temperature": 0.5,
         })
 
@@ -110,7 +73,7 @@ async def fetch_openai_response_with_system_prompt(user_prompt: str, system_prom
             async with session.post("https://api.openai.com/v1/chat/completions", headers=headers, data=data) as response:
                 response_text = await response.text()
                 if response.status == 200:
-                    openai_response = json.loads(response_text) 
+                    openai_response = json.loads(response_text)
                     logger.info(openai_response)
                     reply = openai_response['choices'][0]['message']['content']
                     completion_tokens = openai_response['usage']['completion_tokens']
@@ -118,9 +81,9 @@ async def fetch_openai_response_with_system_prompt(user_prompt: str, system_prom
                     total_tokens = openai_response['usage']['total_tokens']
 
                     logger.info("OpenAI Paid API reply: %s", reply)
-                    logger.info("Completion tokens: %d", completion_tokens)
-                    logger.info("Prompt tokens: %d", prompt_tokens)
-                    logger.info("Total tokens used: %d", total_tokens)
+                    # logger.info("Completion tokens: %d", completion_tokens)
+                    # logger.info("Prompt tokens: %d", prompt_tokens)
+                    # logger.info("Total tokens used: %d", total_tokens)
 
                     chat_history.append({"role": "assistant", "content": reply})
                     logger.info("Response received.")
@@ -142,7 +105,7 @@ async def fetch_openai_response_with_system_prompt(user_prompt: str, system_prom
                         status_code=response.status,
                         detail=f"Error from OpenAI: {error_body.get('error', {}).get('message', 'Unknown error')}"
                     )
-                
+
     except HTTPException as http_ex:
         # Re-raise HTTP exceptions
         raise
@@ -155,6 +118,7 @@ async def fetch_openai_response_with_system_prompt(user_prompt: str, system_prom
     except Exception as e:
         logger.exception("Unexpected error: %s", str(e))
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
 
 if __name__ == "__main__":
     prompt = " Superheroai: It helps you generate superhero avatar of yourself using AI"
