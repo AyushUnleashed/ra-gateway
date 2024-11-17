@@ -86,14 +86,14 @@ if __name__ == "__main__":
             voice_identifier="nova",
             is_visible=True
         )
-        
+        from src.models.base_models import ElevenLabsVoiceIdentifier
         # Test with Eleven Labs voice
         eleven_labs_test_voice = VoiceBase(
             id=UUID('87654321-4321-8765-4321-876543210987'),
-            name="Adam",
+            name=ElevenLabsVoiceIdentifier.JESSICA,
             gender="male",
             provider=TTSProvider.ELEVEN_LABS,
-            voice_identifier="pNInz6obpgDQGcFmaJgB",
+            voice_identifier=ElevenLabsVoiceIdentifier.JESSICA.value,
             is_visible=True
         )
 
@@ -109,7 +109,7 @@ if __name__ == "__main__":
         # Test Eleven Labs
         logger.info("Testing Eleven Labs TTS...")
         url2, duration2 = await generate_t2s_audio(
-            project_id="test_project_id",
+            project_id="02a97fa4-ecf8-46ba-9b6d-0d57b614adab",
             script=DEMO_SCRIPT,
             voice=eleven_labs_test_voice
         )

@@ -146,6 +146,9 @@ class TTSProvider(str, Enum):
 
 class ElevenLabsVoiceIdentifier(str, Enum):
     ADAM = "pNInz6obpgDQGcFmaJgB"
+    JESSICA = "cgSgspJ2msm6clMCkdW9"
+    LILLY = "pFZP5JQG7iQjIQuC4Bku"
+    Charlie = "IKne3meq5aSn9XLyUdCD"
     # Add more voice IDs as needed
 
 class VoiceBase(BaseModel):
