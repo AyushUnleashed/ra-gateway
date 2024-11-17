@@ -1,14 +1,16 @@
 from uuid import UUID
 from fastapi import BackgroundTasks, Request, HTTPException
 from fastapi import APIRouter
-from src.config import Config
+from src.config.settings import Settings
 from src.models.base_models import Project, ProjectStatus
 from src.models.shared_state import projects_in_memory
-from src.api.main_routes import video_post_processing
-webhook_router = APIRouter()
+
 from src.notification.async_slack_bot import RA_SLACK_BOT
 from src.supabase_tools.handle_project_tb_updates import get_project_from_db, get_project_id_from_prediction_id, update_project_in_db 
 from src.utils.logger import logger
+from src.workflow.video_gen_workflow import video_post_processing
+
+webhook_router = APIRouter()
 
 def save_to_file(data, filename):
     import json
@@ -84,5 +86,5 @@ async def handle_webhook_error(data, error_message):
     logger.error(f"An error occurred: {error_message}")
     prediction_id = data.get("id")
     await update_project_status(prediction_id, ProjectStatus.ACTOR_GENERATION_FAILED)
-    await RA_SLACK_BOT.send_message(f" env:{Config.APP_ENV} \n prediction_id:{prediction_id} An error occurred during video processing: {error_message} for {prediction_id}")
+    await RA_SLACK_BOT.send_message(f" env:{Settings.APP_ENV} \n prediction_id:{prediction_id} An error occurred during video processing: {error_message} for {prediction_id}")
     raise HTTPException(status_code=500, detail=error_message)
