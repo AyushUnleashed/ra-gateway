@@ -20,3 +20,4 @@ supabase==2.8.1
 uvicorn==0.31.0
 sentry-sdk[fastapi]
 cachetools==5.5.0
+python-multipart
