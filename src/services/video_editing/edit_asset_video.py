@@ -2,7 +2,7 @@ from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip, concate
 from enum import Enum
 from typing import List
 from src.models.base_models import Asset
-from src.utils.constants import Constants
+from src.config.constants import Constants
 from src.models.base_models import AspectRatio, AssetType
 import os
 import numpy as np
@@ -25,7 +25,7 @@ def save_intermediate_clip(clip, filename, fps=25):
     logger.debug(f"Saving intermediate clip to {output_path}")
     clip.write_videofile(output_path, codec="libx264", fps=fps)
 
-def edit_asset_video(assets: List[Asset], final_video_length: int, aspect_ratio: AspectRatio, asset_edited_video_path: str) -> str:
+def generate_asset_video(assets: List[Asset], final_video_length: int, aspect_ratio: AspectRatio, asset_edited_video_path: str) -> str:
     try:
         logger.info("Starting asset editing process")
         if aspect_ratio == AspectRatio.SQUARE.value:
@@ -134,5 +134,5 @@ if __name__ == "__main__":
 
     # Run the edit_asset_video function
     logger.info("Running the edit_asset_video function")
-    edited_video_path =edit_asset_video(assets, final_video_length, aspect_ratio)
+    edited_video_path =generate_asset_video(assets, final_video_length, aspect_ratio)
     logger.info(f"Edited video saved at: {edited_video_path}")

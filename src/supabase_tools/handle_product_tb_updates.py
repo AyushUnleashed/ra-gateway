@@ -2,7 +2,7 @@ from src.models.base_models import Product
 from uuid import UUID
 from typing import List
 from src.supabase_tools.supabase_client import SUPABASE_CLIENT
-from src.utils.constants import TableNames
+from src.config.constants import TableNames
 
 async def add_product_to_db(product: Product):
     serialized_product = product.serialize_for_db()
@@ -18,8 +18,8 @@ async def get_product_from_db(product_id: UUID) -> Product:
 async def get_all_products_from_db(user_id: UUID) -> List[Product]:
     response = SUPABASE_CLIENT.table(TableNames.PRODUCTS).select("*").eq("user_id", str(user_id)).execute()
     products_data = response.data
-    for product in products_data:
-        print(product)
+    # for product in products_data:
+    #     print(product)
     return [Product(**product) for product in products_data]
 
 async def update_product_in_db(product: Product) -> Product:

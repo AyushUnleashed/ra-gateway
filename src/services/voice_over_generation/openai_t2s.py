@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from dotenv import load_dotenv
 from src.models.base_models import OpenAIVoiceIdentifier
 from src.utils.logger import logger
-from src.config import Config
+from src.config.settings import Settings
 import asyncio
 load_dotenv()
 
@@ -23,7 +23,7 @@ async def openai_text_to_speech(script: str, voice: OpenAIVoiceIdentifier, outpu
     
     url = "https://api.openai.com/v1/audio/speech"
     headers = {
-        "Authorization": f"Bearer {Config.OPENAI_API_KEY}",
+        "Authorization": f"Bearer {Settings.OPENAI_API_KEY}",
         "Content-Type": "application/json"
     }
     data = {

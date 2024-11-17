@@ -3,7 +3,7 @@ import aiohttp
 from pathlib import Path
 from fastapi import HTTPException
 from src.utils.logger import logger
-from src.config import Config
+from src.config.settings import Settings
 
 async def elevenlabs_text_to_speech(script: str, voice_id: str, output_file_path: str):
     logger.info("Starting Eleven Labs text-to-speech conversion.")
@@ -17,7 +17,7 @@ async def elevenlabs_text_to_speech(script: str, voice_id: str, output_file_path
     headers = {
         "Accept": "audio/mpeg",
         "Content-Type": "application/json",
-        "xi-api-key": Config.ELEVEN_LABS_API_KEY
+        "xi-api-key": Settings.ELEVEN_LABS_API_KEY
     }
     
     data = {

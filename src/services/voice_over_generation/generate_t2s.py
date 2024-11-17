@@ -9,7 +9,7 @@ from src.models.base_models import VoiceBase, TTSProvider
 from src.services.voice_over_generation.openai_t2s import openai_text_to_speech
 from src.services.voice_over_generation.elevenlabs_t2s import elevenlabs_text_to_speech
 from src.supabase_tools.handle_bucket_updates import upload_file_to_projects
-from src.utils.constants import Constants
+from src.config.constants import Constants
 from src.utils.logger import logger
 
 async def generate_t2s_audio(project_id: str, script: str, voice: VoiceBase) -> Tuple[str, float]:

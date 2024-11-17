@@ -2,7 +2,7 @@ from src.models.base_models import VideoLayout
 from typing import List
 from uuid import UUID
 from src.supabase_tools.supabase_client import SUPABASE_CLIENT
-from src.utils.constants import TableNames
+from src.config.constants import TableNames
 from src.utils.logger import logger
 
 def get_layouts_from_db() -> List[VideoLayout]:

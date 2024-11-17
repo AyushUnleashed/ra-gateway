@@ -2,7 +2,7 @@ from src.models.base_models import Project, ProjectDTO
 from uuid import UUID
 from typing import List
 from src.supabase_tools.supabase_client import SUPABASE_CLIENT
-from src.utils.constants import TableNames
+from src.config.constants import TableNames
 
 
 async def add_project_to_db(project: Project):

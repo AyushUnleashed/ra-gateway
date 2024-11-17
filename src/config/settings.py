@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-class Config:
+class Settings:
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
     SUPABASE_URL = os.getenv("SUPABASE_URL")
