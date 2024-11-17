@@ -4,15 +4,16 @@ from pathlib import Path
 from fastapi import HTTPException
 from src.utils.logger import logger
 from src.config.settings import Settings
+from src.models.base_models import ElevenLabsVoiceIdentifier 
 
-async def elevenlabs_text_to_speech(script: str, voice_id: str, output_file_path: str):
+async def elevenlabs_text_to_speech(script: str, voice: ElevenLabsVoiceIdentifier, output_file_path: str):
     logger.info("Starting Eleven Labs text-to-speech conversion.")
     
     speech_file_path = Path(output_file_path)
     speech_file_path.parent.mkdir(parents=True, exist_ok=True)
     logger.debug(f"Output file path set to: {speech_file_path}")
 
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice.value}"
     
     headers = {
         "Accept": "audio/mpeg",
@@ -24,8 +25,8 @@ async def elevenlabs_text_to_speech(script: str, voice_id: str, output_file_path
         "text": script,
         "model_id": "eleven_turbo_v2_5",
         "voice_settings": {
-            "stability": 0.0,
-            "similarity_boost": 1.0,
+            "stability": 0.5,
+            "similarity_boost": 0.5,
             "style": 0.0,
             "use_speaker_boost": True
         }
