@@ -2,7 +2,7 @@
 from src.models.base_models import User
 from uuid import UUID
 from src.supabase_tools.supabase_client import SUPABASE_CLIENT
-from src.utils.constants import TableNames
+from src.config.constants import TableNames
 
 # async def add_user_to_db(user: User):
 #     try:

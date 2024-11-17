@@ -2,7 +2,7 @@ from src.models.base_models import Actor
 from typing import List
 from uuid import UUID
 from src.supabase_tools.supabase_client import SUPABASE_CLIENT
-from src.utils.constants import TableNames
+from src.config.constants import TableNames
 
 def get_actors_from_db() -> List[Actor]:
     response = SUPABASE_CLIENT.table(TableNames.ACTORS).select("*").execute()
