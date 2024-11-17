@@ -15,3 +15,4 @@ class Settings:
     SENTRY_DSN = os.getenv("SENTRY_DSN")
     APP_ENV = os.getenv("APP_ENV")
     ELEVEN_LABS_API_KEY = os.getenv("ELEVEN_LABS_API_KEY")
+    SLACKBOT_RA_WEBHOOK_URL = os.getenv("SLACKBOT_RA_WEBHOOK_URL")

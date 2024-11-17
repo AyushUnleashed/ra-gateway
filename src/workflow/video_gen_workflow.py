@@ -2,7 +2,8 @@ import asyncio
 from datetime import datetime
 import os
 from uuid import UUID
-from fastapi import HTTPException, logger
+from src.utils.logger import logger
+from fastapi import HTTPException
 from src.api.routes.video_layouts_routes import get_video_layout_base
 from src.config.settings import Settings
 from src.config.constants import Constants
