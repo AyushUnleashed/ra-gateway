@@ -14,12 +14,21 @@ class ProjectStatus(str, Enum):
     CREATED = "created"
     DRAFT = "draft"
     PROCESSING = "processing"
-    AUDIO_READY = "audio_ready"
+    VOICE_OVER_READY = "voice_over_ready"
+    VOICE_OVER_GENERATION_FAILED = "voice_over_generation_failed"
     ACTOR_GENERATION_STARTED = "actor_generation_started"
     ACTOR_GENERATION_FAILED = "actor_generation_failed"
+    ACTOR_GENERATION_COULD_NOT_START = "actor_generation_could_not_start"
     ACTOR_GENERATION_COMPLETED = "actor_generation_completed"
-    ACTOR_GENERATION_CANCELLED= "actor_generation_cancelled"
-    
+    ACTOR_GENERATION_CANCELLED = "actor_generation_cancelled"
+    ASSETS_VIDEO_GENERATION_STARTED = "assets_video_generation_started"
+    ASSETS_VIDEO_GENERATION_FAILED = "assets_video_generation_failed"
+
+
+    UPLOAD_FAILED = "upload_failed"
+    CAPTIONS_ADDITION_FAILED = "captions_addition_failed"
+    VIDEO_EDITING_FAILED = "video_editing_failed"
+    POST_PROCESSING_FAILED = "post_processing_failed"
     COMPLETED = "completed"
     FAILED = "failed"
     TEST = "test"
@@ -200,6 +209,7 @@ class Project(ProjectDTO):
     # final data 
     final_script: Optional[str] = None
     t2s_audio_url: Optional[str] = None
+    assets_video_local_path: Optional[str] = None
     lipsync_prediction_id: Optional[str] = None
     lipsync_video_url: Optional[str] = None
     final_video_duration: Optional[float] = None
