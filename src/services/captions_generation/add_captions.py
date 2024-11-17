@@ -216,93 +216,103 @@ def transcribe_video(video_path: str, model: whisper.Whisper) -> List[List]:
     
     return text_array
 
-def process_video_for_captions(input_video: str, output_video: str, caption_type: CaptionType, font_path: str, font_size: int = 32):
-    logger.info(f"Loading Whisper model")
-    model = whisper.load_model("base")
+def process_video_for_captions(input_video: str, output_video: str, caption_type: CaptionType):
+    try:
+        logger.info(f"Loading Whisper model")
+        model = whisper.load_model("base")
 
-    # Load the video using moviepy
-    logger.info(f"Loading video: {input_video}")
-    video = VideoFileClip(input_video)
-    
-    # Extract audio from the input video
-    audio = video.audio
+        # Load the video using moviepy
+        logger.info(f"Loading video: {input_video}")
+        video = VideoFileClip(input_video)
+        
+        # Extract audio from the input video
+        audio = video.audio
 
-    cap = cv2.VideoCapture(input_video)
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        cap = cv2.VideoCapture(input_video)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    temp_output = 'temp_output.mp4'
-    out = cv2.VideoWriter(temp_output, fourcc, fps, (width, height))
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        temp_output = 'temp_output.mp4'
+        out = cv2.VideoWriter(temp_output, fourcc, fps, (width, height))
 
-    # Transcribe video (now with caching)
-    text_array = transcribe_video(input_video, model)
+        # Transcribe video (now with caching)
+        text_array = transcribe_video(input_video, model)
 
-    logger.info("Processing video...")
-    frame_number = 0
-    word_index = 0
-    sentence_index = 0
-    current_sentence = []
-    current_sentence_start_time = 0
-    current_sentence_end_time = 0
+        logger.info("Processing video...")
+        frame_number = 0
+        word_index = 0
+        sentence_index = 0
+        current_sentence = []
+        current_sentence_start_time = 0
+        current_sentence_end_time = 0
 
-    # Pre-compute sentences based on Whisper's segments
-    sentences = []
-    for segment in model.transcribe(input_video)["segments"]:
-        words = segment["text"].strip().split()
-        start_time = segment["start"]
-        end_time = segment["end"]
-        sentences.append((words, start_time, end_time))
+        # Pre-compute sentences based on Whisper's segments
+        sentences = []
+        for segment in model.transcribe(input_video)["segments"]:
+            words = segment["text"].strip().split()
+            start_time = segment["start"]
+            end_time = segment["end"]
+            sentences.append((words, start_time, end_time))
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
 
-        current_time = frame_number / fps
+            current_time = frame_number / fps
 
-        # Move to the next sentence if the current one has ended
-        if current_time > current_sentence_end_time and sentence_index < len(sentences):
-            current_sentence, current_sentence_start_time, current_sentence_end_time = sentences[sentence_index]
-            sentence_index += 1
-            word_index = 0
+            # Move to the next sentence if the current one has ended
+            if current_time > current_sentence_end_time and sentence_index < len(sentences):
+                current_sentence, current_sentence_start_time, current_sentence_end_time = sentences[sentence_index]
+                sentence_index += 1
+                word_index = 0
 
-        # Find the current word based on timestamp
-        while word_index < len(current_sentence) and current_sentence_start_time + (word_index * (current_sentence_end_time - current_sentence_start_time) / len(current_sentence)) <= current_time:
-            word_index += 1
+            # Find the current word based on timestamp
+            while word_index < len(current_sentence) and current_sentence_start_time + (word_index * (current_sentence_end_time - current_sentence_start_time) / len(current_sentence)) <= current_time:
+                word_index += 1
 
-        if current_sentence:
-            current_word_index = min(word_index, len(current_sentence) - 1)
-            text_y = height // 2  # Vertically center the captions
-            frame = caption_type.render(frame, current_sentence, current_word_index, (0, text_y))
+            if current_sentence:
+                current_word_index = min(word_index, len(current_sentence) - 1)
+                text_y = height // 2  # Vertically center the captions
+                frame = caption_type.render(frame, current_sentence, current_word_index, (0, text_y))
 
-        out.write(frame)
-        frame_number += 1
+            out.write(frame)
+            frame_number += 1
 
-        if frame_number % 100 == 0:
-            logger.info(f"Processed {frame_number} frames")
+            if frame_number % 100 == 0:
+                logger.info(f"Processed {frame_number} frames")
 
-    cap.release()
-    out.release()
-    cv2.destroyAllWindows()
+        cap.release()
+        out.release()
+        cv2.destroyAllWindows()
 
-    # Load the processed video (without audio)
-    processed_video = VideoFileClip(temp_output)
+        # Load the processed video (without audio)
+        processed_video = VideoFileClip(temp_output)
 
-    # Combine the processed video with the original audio
-    final_video = processed_video.set_audio(audio)
+        # Combine the processed video with the original audio
+        final_video = processed_video.set_audio(audio)
 
-    # Ensure the output directory exists
-    os.makedirs(os.path.dirname(output_video), exist_ok=True)
+        # Ensure the output directory exists
+        os.makedirs(os.path.dirname(output_video), exist_ok=True)
 
-    # Write the final video with audio
-    final_video.write_videofile(output_video, codec='libx264', audio_codec='aac')
+        # Write the final video with audio
+        final_video.write_videofile(output_video, codec='libx264', audio_codec='aac')
 
-    # Clean up temporary files
-    os.remove(temp_output)
+        # Clean up temporary files
+        os.remove(temp_output)
 
-    logger.info(f"Video processing complete. Output saved to {output_video}")
+        logger.info(f"Video processing complete. Output saved to {output_video}")
+
+    except Exception as e:
+        logger.error(f"An error occurred during video processing: {e}")
+    finally:
+        cap.release()
+        out.release()
+        cv2.destroyAllWindows()
+        if os.path.exists(temp_output):
+            os.remove(temp_output)
 
 if __name__ == "__main__":
     input_video = "src/temp_storage/a34b03d2-7190-45cc-b2e7-01e347b18675/working/final_video.mp4"

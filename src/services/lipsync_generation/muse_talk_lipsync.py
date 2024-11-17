@@ -1,6 +1,6 @@
 import aiohttp
 from src.utils.logger import logger
-from src.config import Config
+from src.config.settings import Settings
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 
@@ -18,9 +18,10 @@ class MuseTalkPredictionResponse(BaseModel):
     urls: Dict[str, str]
 
 async def create_muste_talk_prediction(video_input_url: str, audio_input_url: str) -> str:
-    logger.info("Starting MuseTalk video generation.")
+    logger.info("Starting the creation of MuseTalk video generation.")
     try:
-        logger.debug(f"Preparing input data for video generation with audio_input_url: {audio_input_url}, video_input_url: {video_input_url}")
+        logger.debug("Setting up input data for MuseTalk video generation.")
+        logger.debug(f"Audio Input URL: {audio_input_url}, Video Input URL: {video_input_url}")
 
         input_data = {
             "version": "5501004e78525e4bbd9fa20d1e75ad51fddce5a274bec07b9b16d685e34eeaf8",
@@ -28,31 +29,32 @@ async def create_muste_talk_prediction(video_input_url: str, audio_input_url: st
                 "audio_input": audio_input_url,
                 "video_input": video_input_url
             },
-            "webhook": f"{Config.RAI_GATEWAY_BACKEND_URL}/webhook/replicate",
+            "webhook": f"{Settings.RAI_GATEWAY_BACKEND_URL}/webhook/replicate",
             "webhook_events_filter": ["completed"]
         }
 
-        logger.debug(f"Input data prepared: {input_data}")
+        logger.debug("Input data for MuseTalk video generation is ready.")
 
         async with aiohttp.ClientSession() as session:
-            logger.debug("Opened aiohttp ClientSession.")
+            logger.debug("Aiohttp ClientSession opened for initiating MuseTalk video generation.")
             async with session.post(
                 "https://api.replicate.com/v1/predictions",
                 json=input_data,
                 headers={
-                    "Authorization": f"Bearer {Config.REPLICATE_API_TOKEN}",
+                    "Authorization": f"Bearer {Settings.REPLICATE_API_TOKEN}",
                     "Content-Type": "application/json"
                 }
             ) as response:
-                logger.debug(f"Received response with status code: {response.status}")
+                logger.debug(f"Response received with status code: {response.status}")
                 if response.status not in (200, 201):
-                    logger.error(f"Failed to generate MuseTalk video. Status code: {response.status}")
-                    raise Exception(f"Failed to generate MuseTalk video. Status code: {response.status}")
+                    logger.error(f"Failed to initiate MuseTalk video generation. HTTP Status: {response.status}")
+                    raise Exception(f"Failed to initiate MuseTalk video generation. HTTP Status: {response.status}")
                 output = await response.json()
-                logger.info(f"MuseTalk video generation successful. Output: {output}")
+                logger.info("MuseTalk video generation creation initiated successfully.")
+                logger.debug(f"Output received: {output}")
 
     except Exception as e:
-        logger.error(f"Failed to generate MuseTalk video. Error: {e}")
+        logger.error(f"Error during the creation of MuseTalk video generation: {e}")
         raise
 
     return output["id"]
@@ -72,7 +74,7 @@ async def poll_for_lipsync_video(prediction_id: str, max_retries: int = 60, retr
     :return: The URL of the generated lipsync video, or None if failed.
     """
     logger.info(f"Polling for lipsync video with prediction_id: {prediction_id}")
-    api_token = Config.REPLICATE_API_TOKEN
+    api_token = Settings.REPLICATE_API_TOKEN
     if not api_token:
         logger.error("REPLICATE_API_TOKEN is not set in the Config")
         raise ValueError("REPLICATE_API_TOKEN is not set in the Config")
