@@ -3,7 +3,7 @@ from botocore.exceptions import NoCredentialsError
 import os
 import boto3
 from botocore.exceptions import NoCredentialsError
-from src.utils.constants import Constants
+from src.config.constants import Constants
 
 def upload_to_s3(file_name, bucket, s3_file_name):
     # Normalize file paths to use forward slashes

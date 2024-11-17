@@ -2,12 +2,12 @@ import smtplib
 from email.mime.text import MIMEText
 from email.header import Header
 from email.utils import formataddr
-from src.config import Config
-from src.utils.constants import Constants
+from src.config.settings import Settings
+from src.config.constants import Constants
 from src.utils.logger import logger
 
 async def send_email(subject, body, sender, sender_title, recipients, server='smtp.zoho.in', port=465):
-    password = Config.ZOHO_APP_PASSWORD
+    password = Settings.ZOHO_APP_PASSWORD
     """
     Send an email using SMTP with SSL.
 
@@ -37,7 +37,7 @@ async def send_email(subject, body, sender, sender_title, recipients, server='sm
     except Exception as e:
         logger.error(f"Failed to send email: {e}")
 
-async def send_video_ready_alert(user_email:str, project_id:str):
+async def send_video_ready_alert_by_email(user_email:str, project_id:str):
     try:
         recipients = [user_email]
         subject = "Your Video Ad is Ready!"
@@ -61,4 +61,4 @@ async def send_video_ready_alert(user_email:str, project_id:str):
 if __name__ == "__main__":
     # For testing purposes
     import asyncio
-    asyncio.run(send_video_ready_alert("ayushyadavcodes@gmail.com","46b8cc8a-70bd-4b60-8fc2-9e8bdbffdd4a"))
+    asyncio.run(send_video_ready_alert_by_email("ayushyadavcodes@gmail.com","46b8cc8a-70bd-4b60-8fc2-9e8bdbffdd4a"))
