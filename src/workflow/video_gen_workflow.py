@@ -79,6 +79,14 @@ async def video_post_processing(project: Project):
             await handle_error(project, e, ProjectStatus.ACTOR_GENERATION_FAILED, "downloading lipsync video")
             return
 
+        # Retrieve video layout base
+        try:
+            video_layout_base = await get_video_layout_base(project.video_layout_id)
+            project.video_layout_base = video_layout_base
+        except Exception as e:
+            await handle_error(project, e, ProjectStatus.LAYOUT_RETRIEVAL_FAILED, "retrieving video layout base")
+            return
+
         # Combine videos
         try:
             final_video_local_path = await combine_videos(project, lipsync_video_local_path, project.assets_video_local_path)

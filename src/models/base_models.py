@@ -23,8 +23,8 @@ class ProjectStatus(str, Enum):
     ACTOR_GENERATION_CANCELLED = "actor_generation_cancelled"
     ASSETS_VIDEO_GENERATION_STARTED = "assets_video_generation_started"
     ASSETS_VIDEO_GENERATION_FAILED = "assets_video_generation_failed"
-
-
+    
+    LAYOUT_RETRIEVAL_FAILED = "layout_retrieval_failed"
     UPLOAD_FAILED = "upload_failed"
     CAPTIONS_ADDITION_FAILED = "captions_addition_failed"
     VIDEO_EDITING_FAILED = "video_editing_failed"
