@@ -71,6 +71,6 @@ if __name__ == "__main__":
     # Example usage
     combine_videos_vertically(
         "src/temp_storage/1aa538b0-3502-43e5-9ba9-fc30964cb8b4/working/asset_edited_video_AspectRatio.NINE_SIXTEEN.mp4",
-        "src/lipsync_lifestyle_reelsai.mp4",
+        "src/temp_storage/1aa538b0-3502-43e5-9ba9-fc30964cb8b4/working/lipsync_video_1aa538b0-3502-43e5-9ba9-fc30964cb8b4.mp4",
         "src/final_video.mp4",
         shift_top_video=(0, 0), shift_bottom_video=(0, -100))
