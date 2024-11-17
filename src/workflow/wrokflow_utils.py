@@ -40,7 +40,8 @@ async def handle_error(project: Project, e: Exception, status: ProjectStatus, st
 async def send_video_ready_notification(project_id, user_id, final_video_url):
     try:
         await notify_via_slack(project_id, final_video_url)
-        user_email = await get_user_from_db(user_id).email
+        user = await get_user_from_db(user_id)
+        user_email = user.email
         logger.info(f"Sending video ready notification for project {project_id} to user {user_email}")
         await send_video_ready_alert_by_email(user_email, project_id)
     except Exception as e:

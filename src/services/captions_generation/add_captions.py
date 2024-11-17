@@ -216,7 +216,7 @@ def transcribe_video(video_path: str, model: whisper.Whisper) -> List[List]:
     
     return text_array
 
-def process_video_for_captions(input_video: str, output_video: str, caption_type: CaptionType):
+def process_video_for_captions(input_video: str, output_video: str, caption_type: CaptionType) -> str:
     try:
         logger.info(f"Loading Whisper model")
         model = whisper.load_model("base")
@@ -305,8 +305,10 @@ def process_video_for_captions(input_video: str, output_video: str, caption_type
 
         logger.info(f"Video processing complete. Output saved to {output_video}")
 
+        return output_video
+
     except Exception as e:
-        logger.error(f"An error occurred during video processing: {e}")
+        logger.error(f"An error occurred during captions video processing: {e}")
     finally:
         cap.release()
         out.release()

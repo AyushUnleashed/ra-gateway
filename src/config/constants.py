@@ -6,7 +6,7 @@ class Constants:
     LOCAL_STORAGE_BASE_PATH = os.path.join("src", "temp_storage")
     SUPABASE_API_BASE_URL = f"{Settings.SUPABASE_URL}/rest/v1"
     SENDER_EMAIL = "support@reelsai.pro"
-    ROBOTO_FONT_PATH = os.path.join("src", "fonts", "Roboto-Regular.ttf")
+    ROBOTO_FONT_PATH = os.path.join("src", "fonts", "Roboto-Black.ttf")
 
 
 class TableNames:

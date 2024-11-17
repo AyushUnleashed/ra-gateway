@@ -2,6 +2,8 @@ import asyncio
 from datetime import datetime
 import os
 from uuid import UUID
+
+import cv2
 from src.utils.logger import logger
 from fastapi import HTTPException
 from src.api.routes.video_layouts_routes import get_video_layout_base
@@ -105,6 +107,7 @@ async def video_post_processing(project: Project):
 
         # Upload final video
         try:
+            logger.info(f"final_video_with_captions_local_path: {final_video_with_captions_local_path}")
             final_video_url = await upload_final_video(project, final_video_with_captions_local_path)
             project.final_video_url = final_video_url
             project.status = ProjectStatus.COMPLETED
@@ -139,14 +142,14 @@ async def combine_videos(project: Project, lipsync_video_local_path: str, asset_
     logger.info(f"Combining videos for project {project.id}")
     final_video_local_path = get_local_path(project.id, "working", "final_video.mp4")
     
-    # Verify paths exist or raise exception
-    if not os.path.exists(lipsync_video_local_path):
-        logger.error(f"Lipsync video path does not exist: {lipsync_video_local_path}")
-        raise FileNotFoundError(f"Lipsync video path does not exist: {lipsync_video_local_path}")
+    # Verify paths are not empty and exist or raise exception
+    if not lipsync_video_local_path or not os.path.exists(lipsync_video_local_path):
+        logger.error(f"Lipsync video path is invalid or does not exist: {lipsync_video_local_path}")
+        raise FileNotFoundError(f"Lipsync video path is invalid or does not exist: {lipsync_video_local_path}")
     
-    if not os.path.exists(asset_video_path):
-        logger.error(f"Asset video path does not exist: {asset_video_path}")
-        raise FileNotFoundError(f"Asset video path does not exist: {asset_video_path}")
+    if not asset_video_path or not os.path.exists(asset_video_path):
+        logger.error(f"Asset video path is invalid or does not exist: {asset_video_path}")
+        raise FileNotFoundError(f"Asset video path is invalid or does not exist: {asset_video_path}")
 
     if project.video_layout_base.name == VideoLayoutType.TOP_BOTTOM.value:
         await asyncio.to_thread(
@@ -160,8 +163,14 @@ async def combine_videos(project: Project, lipsync_video_local_path: str, asset_
         raise Exception("Unsupported layout type")
     return final_video_local_path
 
+
 async def add_captions_to_video(project: Project, final_video_local_path: str) -> str:
     logger.info(f"Adding captions to final video for project {project.id}")
+
+    # Verify input video exists
+    if not os.path.exists(final_video_local_path):
+        raise FileNotFoundError(f"Input video not found at: {final_video_local_path}. Cannot proceed with adding captions.")
+    
     caption_type = BoxedHighlightCaption(
         font_path=Constants.ROBOTO_FONT_PATH,
         font_size=72,
@@ -172,7 +181,11 @@ async def add_captions_to_video(project: Project, final_video_local_path: str) -
         background_color=(0, 0, 0, 0),
         background_padding=5
     )
+    
+    # Ensure output directory exists
     final_video_with_captions_local_path = get_local_path(project.id, "working", "final_video_with_captions.mp4")
+    os.makedirs(os.path.dirname(final_video_with_captions_local_path), exist_ok=True)
+
     await asyncio.to_thread(
         process_video_for_captions,
         final_video_local_path,
@@ -181,6 +194,62 @@ async def add_captions_to_video(project: Project, final_video_local_path: str) -
     )
     return final_video_with_captions_local_path
 
+# async def add_captions_to_video(project: Project, final_video_local_path: str) -> str:
+#     """Add captions to video with enhanced debug logging."""
+#     logger.info(f"Starting caption addition for project {project.id}")
+#     logger.info(f"Input video path: {final_video_local_path}")
+    
+#     # Check if file exists and is accessible
+#     if not os.path.exists(final_video_local_path):
+#         logger.error(f"Input video file does not exist: {final_video_local_path}")
+#         raise FileNotFoundError(f"Input video not found: {final_video_local_path}")
+    
+#     try:
+#         # Log file size and permissions
+#         file_stats = os.stat(final_video_local_path)
+#         logger.info(f"Input video file size: {file_stats.st_size} bytes")
+#         logger.info(f"Input video file permissions: {oct(file_stats.st_mode)}")
+        
+#         # Try to open file for reading to verify access
+#         with open(final_video_local_path, 'rb') as f:
+#             logger.info("Successfully opened input video file for reading")
+            
+#         # Verify video can be opened with cv2
+#         cap = cv2.VideoCapture(final_video_local_path)
+#         if not cap.isOpened():
+#             logger.error("Failed to open video with OpenCV")
+#             raise ValueError("Cannot open video with OpenCV")
+#         logger.info("Successfully opened video with OpenCV")
+#         cap.release()
+        
+#         # Continue with existing caption logic...
+#         caption_type = BoxedHighlightCaption(
+#             font_path=Constants.ROBOTO_FONT_PATH,
+#             font_size=72,
+#             default_color=(255, 255, 255),
+#             highlight_color=(255, 0, 0),
+#             outline_color=(0, 0, 0),
+#             outline_thickness=3,
+#             background_color=(0, 0, 0, 0),
+#             background_padding=5
+#         )
+        
+#         final_video_with_captions_local_path = get_local_path(project.id, "working", "final_video_with_captions.mp4")
+#         logger.info(f"Output video will be written to: {final_video_with_captions_local_path}")
+        
+#         # Create output directory if it doesn't exist
+#         os.makedirs(os.path.dirname(final_video_with_captions_local_path), exist_ok=True)
+        
+#         return await asyncio.to_thread(
+#             process_video_for_captions,
+#             final_video_local_path,
+#             final_video_with_captions_local_path,
+#             caption_type
+#         )
+        
+#     except Exception as e:
+#         logger.error(f"Error in add_captions_to_video: {str(e)}", exc_info=True)
+#         raise
 
 # if __name__ == "__main__":
 #     asyncio.run(send_video_ready_notification("46b8cc8a-70bd-4b60-8fc2-9e8bdbffdd4a","814f3aa0-421b-475f-9489-38aea444f364","final_video_url"))
