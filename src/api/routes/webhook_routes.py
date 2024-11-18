@@ -68,12 +68,11 @@ async def process_replicate_webhook(data):
             else:
                 logger.warning(f"Assets video local path is empty for project {project_id}. Retrying in 1 minute... (Attempt {attempt + 1}/5)")
                 await asyncio.sleep(60)  # Wait for 1 minute before retrying
-                project = await get_project_from_db(project_id)  # Reload project from database
 
         # If after 5 attempts the asset video local path is still empty, log an error
         logger.error(f"Assets video local path is still empty after 5 attempts for project {project_id}.")
         raise ValueError("Assets video local path is not updated after multiple attempts")
-        
+
     except Exception as e:
         logger.error(f"Error in process_replicate_webhook: {str(e)}")
         return await handle_webhook_error(data, str(e))
