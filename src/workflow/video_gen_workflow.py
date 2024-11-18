@@ -23,7 +23,7 @@ from src.supabase_tools.handle_project_tb_updates import update_project_in_db
 from src.supabase_tools.handle_users_tb_updates import get_user_from_db
 from src.utils.file_handling import get_local_path
 from src.utils.util_functions import download_video
-from src.workflow.wrokflow_utils import download_lipsync_video, handle_error, send_video_ready_notification, upload_final_video, handle_success
+from src.workflow.wrokflow_utils import delete_working_directory, download_lipsync_video, handle_error, send_video_ready_notification, upload_final_video, handle_success
 
 async def start_lipsync_gen_with_audio(project: Project):
     try:
@@ -119,6 +119,9 @@ async def video_post_processing(project: Project):
             return
 
         await send_video_ready_notification(project.id, project.user_id, final_video_url)
+
+        # Delete the working directory
+        await delete_working_directory(project.id)
 
         return project
 
