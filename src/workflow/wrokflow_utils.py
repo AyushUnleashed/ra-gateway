@@ -1,3 +1,5 @@
+import asyncio
+import os
 from fastapi import HTTPException
 from src.config.settings import Settings
 from src.notification.gmail_service import send_video_ready_alert_by_email
@@ -65,3 +67,14 @@ async def handle_success(project: Project, stage: str):
         f"Project ID: {project.id}\n"
         f"Status: Successfully completed {stage}"
     )
+    
+async def delete_working_directory(project_id: str):
+    import shutil
+    temp_storage_path = os.path.join("src", "temp_storage", project_id)
+    if os.path.exists(temp_storage_path):
+        shutil.rmtree(temp_storage_path)
+        logger.info(f"Deleted working directory for project {project_id}")
+
+
+if __name__ == "__main__":
+    asyncio.run(delete_working_directory("19b7da0c-8df1-450e-8a09-46b009e0fb8e"))

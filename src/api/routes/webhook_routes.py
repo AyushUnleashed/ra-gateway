@@ -48,6 +48,7 @@ async def replicate_webhook(request: Request, background_tasks: BackgroundTasks)
     except Exception as e:
         logger.error(f"Error processing webhook: {str(e)}")
         return await handle_webhook_error(data, str(e))
+    
 async def process_replicate_webhook(data):
     try:
         prediction_id = data.get("id")
