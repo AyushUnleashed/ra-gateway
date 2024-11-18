@@ -1,3 +1,4 @@
+import asyncio
 from uuid import UUID
 from fastapi import BackgroundTasks, Request, HTTPException
 from fastapi import APIRouter
@@ -47,7 +48,6 @@ async def replicate_webhook(request: Request, background_tasks: BackgroundTasks)
     except Exception as e:
         logger.error(f"Error processing webhook: {str(e)}")
         return await handle_webhook_error(data, str(e))
-
 async def process_replicate_webhook(data):
     try:
         prediction_id = data.get("id")
@@ -58,9 +58,22 @@ async def process_replicate_webhook(data):
 
         logger.info(f"Processing prediction ID: {prediction_id}")
         project_id = await get_project_id_from_prediction_id(prediction_id)
-        project = await get_and_update_project(project_id, lipsync_video_url)
-        logger.info(f"Project {project_id} updated with lipsync video URL.")
-        return await video_post_processing(project)
+        
+        # Attempt to get and update the project, retrying if the asset video local path is empty
+        for attempt in range(5):
+            project = await get_and_update_project(project_id, lipsync_video_url)
+            if project.assets_video_local_path:
+                logger.info(f"Project {project_id} updated with lipsync video URL.")
+                return await video_post_processing(project)
+            else:
+                logger.warning(f"Assets video local path is empty for project {project_id}. Retrying in 1 minute... (Attempt {attempt + 1}/5)")
+                await asyncio.sleep(60)  # Wait for 1 minute before retrying
+                project = await get_project_from_db(project_id)  # Reload project from database
+
+        # If after 5 attempts the asset video local path is still empty, log an error
+        logger.error(f"Assets video local path is still empty after 5 attempts for project {project_id}.")
+        raise ValueError("Assets video local path is not updated after multiple attempts")
+        
     except Exception as e:
         logger.error(f"Error in process_replicate_webhook: {str(e)}")
         return await handle_webhook_error(data, str(e))
