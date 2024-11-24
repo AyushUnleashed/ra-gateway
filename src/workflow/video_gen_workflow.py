@@ -121,7 +121,7 @@ async def video_post_processing(project: Project):
         await send_video_ready_notification(project.id, project.user_id, final_video_url)
 
         # Delete the working directory
-        await delete_working_directory(project.id)
+        delete_working_directory(project.id)
 
         return project
 
