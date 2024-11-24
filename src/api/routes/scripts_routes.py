@@ -71,7 +71,6 @@ async def update_script(project_id: UUID, script_id: UUID = Body(...), content: 
 
 @scripts_router.put("/api/projects/{project_id}/scripts/finalize")
 async def finalize_script(project_id: UUID, body: dict):
-    script_id = UUID(body.get('script_id'))
     is_custom = body.get('is_custom', False)
     content = body.get('content')
 
@@ -82,6 +81,7 @@ async def finalize_script(project_id: UUID, body: dict):
     project = projects_in_memory[project_id]
 
     if not is_custom:
+        script_id = UUID(body.get('script_id'))
         if not project.script or project.script.id != script_id:
             logger.warning(f"Script not found for project {project_id} with script id {script_id}")
             raise HTTPException(status_code=404, detail="Script not found")
