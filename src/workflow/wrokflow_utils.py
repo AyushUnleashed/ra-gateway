@@ -68,7 +68,7 @@ async def handle_success(project: Project, stage: str):
         f"Status: Successfully completed {stage}"
     )
     
-async def delete_working_directory(project_id: str):
+def delete_working_directory(project_id: str):
     import shutil
     temp_storage_path = os.path.join("src", "temp_storage", project_id)
     if os.path.exists(temp_storage_path):
