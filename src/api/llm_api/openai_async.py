@@ -8,7 +8,8 @@ import json
 from src.utils.logger import logger
 
 MODEL_GPT_35_TURBO = "gpt-3.5-turbo"
-MODEL_NAME = MODEL_GPT_35_TURBO
+MODEL_GPT_4O = "gpt-4o"
+MODEL_NAME = MODEL_GPT_4O  # or MODEL_GPT_4O depending on your requirement
 
 def prepare_llm_prompt(product_description: str, product_name: str, cta: str, target_audience: str, duration_limit: int, direction: str) -> str:
     # Prepare the prompt for LLM.
