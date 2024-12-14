@@ -16,3 +16,4 @@ class Settings:
     APP_ENV = os.getenv("APP_ENV")
     ELEVEN_LABS_API_KEY = os.getenv("ELEVEN_LABS_API_KEY")
     SLACKBOT_RA_WEBHOOK_URL = os.getenv("SLACKBOT_RA_WEBHOOK_URL")
+    DODO_WEBHOOK_SECRET_KEY = os.getenv("DODO_WEBHOOK_SECRET_KEY")
