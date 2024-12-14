@@ -7,6 +7,7 @@ class Constants:
     SUPABASE_API_BASE_URL = f"{Settings.SUPABASE_URL}/rest/v1"
     SENDER_EMAIL = "support@reelsai.pro"
     ROBOTO_FONT_PATH = os.path.join("src", "fonts", "Roboto-Black.ttf")
+    REDIRECT_URL = "https://reelsai.pro/products"
 
 
 class TableNames:
