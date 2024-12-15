@@ -26,7 +26,7 @@ env:
   ELEVEN_LABS_API_KEY: ${{ secrets.ELEVEN_LABS_API_KEY }}
   DODO_WEBHOOK_SECRET_KEY: ${{ vars.DODO_WEBHOOK_SECRET_KEY }}
   REDIRECT_URL: ${{ vars.REDIRECT_URL }}
-  IS_PRODUCTION: "true"
+  IS_PRODUCTION: "TRUE"
 
 jobs:
   build:
