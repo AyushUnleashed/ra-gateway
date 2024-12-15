@@ -24,6 +24,8 @@ env:
   APP_ENV: prod
   SLACKBOT_RA_WEBHOOK_URL: ${{ vars.SLACKBOT_RA_WEBHOOK_URL }}
   ELEVEN_LABS_API_KEY: ${{ secrets.ELEVEN_LABS_API_KEY }}
+  DODO_WEBHOOK_SECRET_KEY: ${{ vars.DODO_WEBHOOK_SECRET_KEY }}
+  REDIRECT_URL: ${{ vars.REDIRECT_URL }}
 
 jobs:
   build:
@@ -69,6 +71,8 @@ jobs:
             --build-arg APP_ENV="${APP_ENV}" \
             --build-arg SLACKBOT_RA_WEBHOOK_URL="${SLACKBOT_RA_WEBHOOK_URL}" \
             --build-arg ELEVEN_LABS_API_KEY="${ELEVEN_LABS_API_KEY}" \
+            --build-arg DODO_WEBHOOK_SECRET_KEY="${DODO_WEBHOOK_SECRET_KEY}" \
+            --build-arg REDIRECT_URL="${REDIRECT_URL}" \
             .
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
           echo "Pushing Docker images to ECR..."
