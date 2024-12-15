@@ -4,10 +4,10 @@ from src.config.settings import Settings
 pack_type_to_product_id = {
     'test': {
         'BASIC': 'pdt_24EhgTI2a8g8UWLcmmkiG',
-        'STANDARD': 'test_prod_002',
+        'STANDARD': 'pdt_amOwdwQKnWnWNirwz32Kr',
     },
     'live': {
-        'BASIC': 'prod_001',
+        'BASIC': 'pdt_Ia1YCMeSp3xPJ95Vy8TGJ',
         'STANDARD': 'pdt_tn67uip5BYeTkIJzjIDU2',
     },
 }
