@@ -1,9 +1,35 @@
 
 from typing import Any, Dict
+from src.supabase_tools.handle_profiles_tb_updates import update_user_credits, get_user_id_from_email
 from src.utils.logger import logger
+from src.payments.payments_utils import get_credit_amount_from_pack_type, get_pack_type_from_product_id
+from src.config.settings import Settings
 
+async def process_credits_addition(data) -> bool:
+    try:
+        customer = data["customer"]
+        product_id = data["product_cart"][0]["product_id"]
+        email = customer['email']
+        
+        # is_test_mode = is_payment_test_mode(data["payment_link"])  
+        pack_type = get_pack_type_from_product_id(product_id)
 
-def handle_payment_event(event_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        user_id = await get_user_id_from_email(email)
+
+        additional_credits = get_credit_amount_from_pack_type(pack_type)
+
+        # if is_test_mode == Settings.IS_PRODUCTION:
+        #     logger.error(f"Payment mode mismatch: Test mode={is_test_mode}, Production mode={Settings.IS_PRODUCTION}")
+        #     return False
+        # Add credits to user account here
+        await update_user_credits(user_id, additional_credits)
+        
+        return True
+    except Exception as e:
+        logger.error(f"Error processing credits addition: {str(e)}")
+        return False
+        
+async def handle_payment_event(event_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Handle different payment-related events
     """
@@ -12,10 +38,14 @@ def handle_payment_event(event_type: str, data: Dict[str, Any]) -> Dict[str, Any
         payment_id = data["payment_id"]
         amount = data["total_amount"]
         currency = data["currency"]
-        customer = data["customer"]
         
         # Add your business logic here
-        logger.debug(f"Processing successful payment: ID={payment_id}, Amount={amount}, Currency={currency}, Customer={customer}")
+        logger.debug(f"Processing successful payment: ID={payment_id}, Amount={amount}, Currency={currency}")
+
+        
+        # # Process credits addition
+        success = await process_credits_addition(data)
+        
         return {
             "status": "processed",
             "message": f"Successfully processed payment {payment_id}"

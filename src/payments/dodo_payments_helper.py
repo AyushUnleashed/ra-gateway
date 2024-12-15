@@ -5,23 +5,6 @@ from src.config.settings import Settings
 from src.utils.logger import logger
 
 
-pack_type_to_product_id = {
-    'test': {
-        'BASIC': 'pdt_24EhgTI2a8g8UWLcmmkiG',
-        'STANDARD': 'test_prod_002',
-        'PREMIUM': 'test_prod_003'
-    },
-    'live': {
-        'BASIC': 'prod_001',
-        'STANDARD': 'prod_002',
-        'PREMIUM': 'prod_003'
-    }
-}
-
-def get_product_id_from_pack_type(pack_type) -> str | None:
-    pack_type = pack_type.upper()
-    return pack_type_to_product_id['test'].get(pack_type, None)
-
 from standardwebhooks.webhooks import Webhook
 import base64
 import json
