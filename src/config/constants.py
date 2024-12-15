@@ -9,6 +9,7 @@ class Constants:
     ROBOTO_FONT_PATH = os.path.join("src", "fonts", "Roboto-Black.ttf")
 
 
+
 class TableNames:
     ACTORS = "actors"
     VOICES = "voices"
@@ -17,3 +18,4 @@ class TableNames:
     PRODUCTS ="products"
     PROJECTS = "projects"
     PROFILES = "profiles"
+    DODO_WEBHOOKS = "dodo_webhooks"

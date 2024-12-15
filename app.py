@@ -51,6 +51,9 @@ from src.api.routes.scripts_routes import scripts_router
 from src.api.routes.users_routes import users_router
 from src.api.routes.video_layouts_routes import video_layouts_router
 from src.api.routes.webhook_routes import webhook_router
+from src.api.routes.payments_routes import payments_router
+from src.config.settings import Settings
+from src.utils.logger import logger
 
 app.include_router(main_router)
 app.include_router(actors_router)
@@ -60,10 +63,16 @@ app.include_router(scripts_router)
 app.include_router(users_router)
 app.include_router(video_layouts_router)
 app.include_router(webhook_router)
+app.include_router(payments_router)
 
 @app.get("/sentry-debug")
 async def trigger_error():
     division_by_zero = 1 / 0
-      
+
+if Settings.IS_PRODUCTION == True:
+    logger.info(f"App running in production environment")
+else:
+    logger.info(f"App running in local environment")
+    
 if __name__ == '__main__':
     uvicorn.run("app:app", host="0.0.0.0", port=5151, workers=2, reload=True)

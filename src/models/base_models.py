@@ -254,3 +254,26 @@ class User(BaseModel):
         # Convert UUID to string
         data['id'] = str(data['id'])
         return data
+    
+
+class DoDoWebhook(BaseModel):
+    payment_id: str
+    user_id: UUID
+    product_id: str
+    payload_type: str
+    type: str
+    payment_method: str
+    email: str
+    webhook_object: str
+    test_mode: bool
+    created_at: datetime
+
+    def serialize_for_db(self) -> Dict[str, Any]:
+        data = self.model_dump()
+        # Convert UUID to string
+        data['user_id'] = str(data['user_id'])
+        
+        # Convert datetime objects to ISO format strings
+        data['created_at'] = data['created_at'].isoformat()
+        
+        return data

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from uuid import UUID
 from src.api.utils import verify_token
 from src.models.base_models import User
-from src.supabase_tools.handle_users_tb_updates import get_user_from_db, update_user_in_db
+from src.supabase_tools.handle_profiles_tb_updates import get_user_from_db, update_user_in_db
 from src.utils.logger import logger
 
 users_router = APIRouter()
@@ -19,7 +19,7 @@ async def get_credits(user_id=Depends(verify_token)):
 
 @users_router.post("/api/users/reduce_credits")
 async def reduce_credit(user_id: UUID=Depends(verify_token)):
-    logger.info(f"Attempting to reduce credits for user {user_id}")
+    logger.info(msg=f"Attempting to reduce credits for user {user_id}")
     
     # Retrieve the existing user from the database
     user = await get_user_from_db(user_id)

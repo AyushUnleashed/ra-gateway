@@ -1,4 +1,3 @@
-
 from src.models.base_models import User
 from uuid import UUID
 from src.supabase_tools.supabase_client import SUPABASE_CLIENT
@@ -46,6 +45,31 @@ async def update_user_in_db(user: User) -> User:
 #         return True
 #     except Exception as e:
 #         raise Exception(f"An error occurred while deleting the user from the database: {e}")
+
+async def get_email_and_full_name_from_user_id(user_id: UUID) -> tuple[str, str]:
+    user = await get_user_from_db(user_id)
+    return user.email, user.full_name
+
+async def get_user_id_from_email(email: str) -> UUID:
+    try:
+        response = SUPABASE_CLIENT.table(TableNames.PROFILES).select("id").eq("email", email).single().execute()
+        user_data = response.data
+        if not user_data:
+            raise Exception("User not found")
+        return UUID(user_data["id"])
+    except Exception as e:
+        raise Exception(f"An error occurred while fetching the user ID from the database: {e}")
+
+async def update_user_credits(user_id: UUID, additional_credits: int) -> bool:
+    try:
+        if additional_credits <= 0:
+            raise ValueError("Additional credits must be a positive number")
+        user = await get_user_from_db(user_id)
+        new_credits: int = user.credits + additional_credits
+        update_response = SUPABASE_CLIENT.table(TableNames.PROFILES).update({"credits": new_credits}).eq("id", str(user.id)).execute()
+        return True
+    except Exception as e:
+        raise Exception(f"An error occurred while updating user credits: {e}")
 
 import asyncio
 

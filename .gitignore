@@ -6,3 +6,5 @@ src/assets/
 .env
 __pycache__
 *.mp4
+cache/*
+*.json

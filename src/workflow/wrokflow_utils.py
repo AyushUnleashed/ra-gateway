@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from src.config.settings import Settings
 from src.notification.gmail_service import send_video_ready_alert_by_email
 from src.supabase_tools.handle_project_tb_updates import update_project_in_db
-from src.supabase_tools.handle_users_tb_updates import get_user_from_db
+from src.supabase_tools.handle_profiles_tb_updates import get_user_from_db
 from src.utils.file_handling import get_local_path
 from src.utils.logger import logger
 from src.models.base_models import Project, ProjectStatus

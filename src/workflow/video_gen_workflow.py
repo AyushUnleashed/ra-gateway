@@ -20,7 +20,7 @@ from src.services.video_editing.edit_asset_video import generate_asset_video
 from src.services.voice_over_generation.generate_t2s import generate_t2s_audio
 from src.supabase_tools.handle_bucket_updates import upload_file_to_projects
 from src.supabase_tools.handle_project_tb_updates import update_project_in_db
-from src.supabase_tools.handle_users_tb_updates import get_user_from_db
+from src.supabase_tools.handle_profiles_tb_updates import get_user_from_db
 from src.utils.file_handling import get_local_path
 from src.utils.util_functions import download_video
 from src.workflow.wrokflow_utils import delete_working_directory, download_lipsync_video, handle_error, send_video_ready_notification, upload_final_video, handle_success
