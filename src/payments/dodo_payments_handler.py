@@ -7,7 +7,6 @@ from src.supabase_tools.handle_profiles_tb_updates import get_email_and_full_nam
 from src.utils.logger import logger
 from src.config.settings import Settings
 
-
 async def generate_payment_link(user_email, product_id, full_name, redirect_url=Settings.REDIRECT_URL) -> str:
     first_name, last_name = full_name.split(' ', 1)
     logger.info(f"Settings.IS_PRODUCTION: {Settings.IS_PRODUCTION}")
