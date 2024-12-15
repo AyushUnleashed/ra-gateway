@@ -17,12 +17,12 @@ class Settings:
     ELEVEN_LABS_API_KEY = os.getenv("ELEVEN_LABS_API_KEY")
     SLACKBOT_RA_WEBHOOK_URL = os.getenv("SLACKBOT_RA_WEBHOOK_URL")
     DODO_WEBHOOK_SECRET_KEY = os.getenv("DODO_WEBHOOK_SECRET_KEY")
-    IS_PRODUCTION = os.getenv("IS_PRODUCTION", "false").lower() == "true"
+    IS_PRODUCTION = os.getenv("IS_PRODUCTION", "TRUE").upper() == "TRUE"
     REDIRECT_URL = os.getenv("REDIRECT_URL")
 
 
 if __name__ == "__main__":
-    print(os.getenv("IS_PRODUCTION", "false"))
-    print(os.getenv("IS_PRODUCTION", "true").lower() == "true")
+    print(os.getenv("IS_PRODUCTION", "TRUE"))
+    print(os.getenv("IS_PRODUCTION", "TRUE").upper() == "TRUE")
     print(Settings.IS_PRODUCTION)
     # print(Settings.__dict__)
