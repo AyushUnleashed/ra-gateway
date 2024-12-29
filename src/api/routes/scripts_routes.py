@@ -80,17 +80,18 @@ async def finalize_script(project_id: UUID, body: dict):
 
     project = projects_in_memory[project_id]
 
-    if not is_custom:
+    if is_custom:
+        project.final_script = content
+        logger.info(f"Final script set for project {project_id} with custom content: {project.final_script}")
+    else:
         script_id = UUID(body.get('script_id'))
         if not project.script or project.script.id != script_id:
             logger.warning(f"Script not found for project {project_id} with script id {script_id}")
             raise HTTPException(status_code=404, detail="Script not found")
         project.final_script = project.script.content
-    else:
-        project.final_script = content
+        logger.info(f"Final script set for project {project_id} with script id {script_id}: {project.final_script}")
 
     project.updated_at = datetime.now()
 
-    logger.info(f"Final script set for project {project_id} with script id {script_id}: {project.final_script}")
 
     return {"final_script_set": True, "message": "Script has been set as final script for the project"}
