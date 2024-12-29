@@ -47,7 +47,7 @@ async def get_script(project_id: UUID):
 
     logger.info(f"Script retrieved for project {project_id}")
 
-    return [project.script.dict()]
+    return [project.script.dict()],  project.final_script if project.final_script else ''
 
 @scripts_router.put("/api/projects/{project_id}/scripts/update")
 async def update_script(project_id: UUID, script_id: UUID = Body(...), content: str = Body(...)):
