@@ -1,5 +1,5 @@
 from src.config.settings import Settings
-
+from src.utils.logger import logger 
 
 pack_type_to_product_id = {
     'test': {
@@ -24,6 +24,7 @@ def get_product_id_from_pack_type(pack_type) -> str:
         environment = 'test'
         
     pack_type = pack_type.upper()
+    logger.info(f"Getting product id for pack type: {pack_type}")
     return pack_type_to_product_id[environment].get(pack_type, '')
 
 def get_credit_amount_from_pack_type(pack_type) -> int:
