@@ -13,7 +13,8 @@ from src.models.base_models import AspectRatio, Project, ProjectStatus, VideoLay
 from src.models.shared_state import projects_in_memory
 from src.notification.async_slack_bot import RA_SLACK_BOT
 from src.notification.gmail_service import send_video_ready_alert_by_email
-from src.services.captions_generation.add_captions import BoxedHighlightCaption, process_video_for_captions
+from src.services.captions_generation.add_captions_to_video import process_video_for_captions
+from src.services.captions_generation.captions import BoxedHighlightCaption
 from src.services.lipsync_generation.muse_talk_lipsync import create_muste_talk_prediction
 from src.services.video_editing.combine_videos import combine_videos_vertically
 from src.services.video_editing.edit_asset_video import generate_asset_video

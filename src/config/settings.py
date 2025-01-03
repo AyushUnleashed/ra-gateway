@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-
 load_dotenv()
 
 class Settings:
@@ -19,10 +18,11 @@ class Settings:
     DODO_WEBHOOK_SECRET_KEY = os.getenv("DODO_WEBHOOK_SECRET_KEY")
     IS_PRODUCTION = os.getenv("IS_PRODUCTION", "TRUE").upper() == "TRUE"
     REDIRECT_URL = os.getenv("REDIRECT_URL")
-
+    ASSEMBLYAI_API_KEY = os.getenv("ASSEMBLYAI_API_KEY","Kat gaya")
 
 if __name__ == "__main__":
-    print(os.getenv("IS_PRODUCTION", "TRUE"))
-    print(os.getenv("IS_PRODUCTION", "TRUE").upper() == "TRUE")
+    # print(os.getenv("IS_PRODUCTION", "TRUE"))
+    # print(os.getenv("IS_PRODUCTION", "TRUE").upper() == "TRUE")
     print(Settings.IS_PRODUCTION)
+    # print(Settings.ASSEMBLYAI_API_KEY)
     # print(Settings.__dict__)

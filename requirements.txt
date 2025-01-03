@@ -23,3 +23,4 @@ cachetools==5.5.0
 python-multipart
 pathspec
 standardwebhooks
+assemblyai
